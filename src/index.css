@@ -14,18 +14,87 @@
 }
 
 @layer base {
+  :root {
+    --mobile-padding: clamp(12px, 4vw, 24px);
+    --section-vertical-padding: clamp(24px, 6vw, 64px);
+  }
+
+  html {
+    font-size: 16px;
+    height: 100dvh;
+    scroll-behavior: smooth;
+  }
+
   body {
     @apply bg-[#050510] text-[#f4f4f5] antialiased selection:bg-cyan-500/30 overflow-x-hidden;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    min-height: 100dvh;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Fluid Typography */
+  h1, .hero-text {
+    font-size: clamp(1.8rem, 8vw, 6rem);
+    line-height: 1;
+    @apply font-black tracking-tighter uppercase;
+  }
+
+  h2 {
+    font-size: clamp(1.4rem, 6vw, 2.8rem);
+    @apply font-black leading-tight tracking-tight uppercase;
+  }
+
+  h3 {
+    font-size: clamp(1.1rem, 5vw, 1.8rem);
+    @apply font-bold tracking-tight uppercase;
+  }
+
+  p, body, .body-text {
+    font-size: clamp(0.875rem, 3.5vw, 1rem);
+    @apply leading-relaxed;
+  }
+
+  .small-text {
+    font-size: clamp(0.75rem, 2.8vw, 0.875rem);
+  }
+
+  button {
+    font-size: clamp(0.8125rem, 3vw, 0.875rem);
+    min-height: 48px;
+    min-width: 48px;
+  }
+
+  input, select, textarea {
+    font-size: 16px !important; /* Prevent iOS zoom */
+    min-height: 48px;
+  }
+
+  /* Accessibility Optimizations */
+  .mobile-optimized-text {
+    letter-spacing: 0.02em;
+    line-height: 1.6;
+  }
+
+  .high-readability {
+    --tw-text-opacity: 1;
+    color: rgb(255 255 255 / var(--tw-text-opacity));
+    font-weight: 500;
+  }
+
+  .touch-target {
+    @apply min-h-[48px] min-w-[48px] flex items-center justify-center;
   }
 }
 
 .glass-card {
-  @apply bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-[40px] 
+  @apply bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-[32px] 
          shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] transition-all duration-500 hover:bg-white/[0.05] hover:border-white/20;
+  padding: var(--mobile-padding);
 }
 
 .text-8xl-bold {
-  @apply text-8xl md:text-9xl font-black tracking-tighter leading-[0.8] uppercase;
+  font-size: clamp(3rem, 15vw, 9rem);
+  @apply font-black tracking-tighter leading-[0.8] uppercase;
 }
 
 .text-title-bold {

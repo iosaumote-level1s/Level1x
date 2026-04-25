@@ -107,20 +107,20 @@ export default function Dashboard({ profile }: DashboardProps) {
   };
 
   return (
-    <div className="space-y-16 pb-24 relative">
+    <div className="space-y-12 sm:space-y-16 pb-32 sm:pb-24 relative">
       {/* Personalized Greeting */}
       <motion.div 
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
-        className="space-y-2"
+        className="space-y-3 px-2"
       >
-        <p className="text-cyan-400 font-bold uppercase tracking-[0.4em] text-[10px]">
+        <p className="text-cyan-400 font-bold uppercase tracking-[0.2em] sm:tracking-[0.4em] text-[8px] sm:text-[10px]">
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
         </p>
-        <h2 className="text-6xl font-black italic tracking-tighter uppercase leading-none">
-          {getGreeting()}, <span className="text-white/40">great to see you</span>.
+        <h2 className="italic leading-[0.9] sm:leading-none">
+          {getGreeting()}, <br className="sm:hidden" /> <span className="text-white/40">great to see you</span>.
         </h2>
-        <p className="text-white/40 font-medium tracking-wide">
+        <p className="text-white/40 font-medium tracking-wide text-xs sm:text-base">
           Ready to dominate the 1% tier today, {profile.displayName}?
         </p>
       </motion.div>
@@ -135,35 +135,36 @@ export default function Dashboard({ profile }: DashboardProps) {
           />
         )}
       </AnimatePresence>
+
       {/* Header Stat Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {[
-          { label: 'Efficiency Score', value: `${efficiency}%`, icon: Zap, color: 'text-cyan-400' },
-          { label: 'Current Rank', value: `TOP ${calculatedRank.toFixed(1)}%`, icon: TrendingUp, color: 'text-fuchsia-400' },
-          { label: 'Growth Velocity', value: `+${(logs.length * 0.4).toFixed(1)}%`, icon: Zap, color: 'text-purple-400' },
-          { label: 'Active Goals', value: `${goals.length}`, icon: CheckCircle2, color: 'text-white' },
+          { label: 'Efficiency', value: `${efficiency}%`, icon: Zap, color: 'text-cyan-400' },
+          { label: 'Rank', value: `TOP ${calculatedRank.toFixed(1)}%`, icon: TrendingUp, color: 'text-fuchsia-400' },
+          { label: 'Velocity', value: `+${(logs.length * 0.4).toFixed(1)}%`, icon: Zap, color: 'text-purple-400' },
+          { label: 'Goals', value: `${goals.length}`, icon: CheckCircle2, color: 'text-white' },
         ].map((stat, i) => (
           <motion.div 
             key={i}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="glass-card p-8 flex flex-col justify-between h-36 relative group overflow-hidden border-white/10"
+            className="glass-card p-5 sm:p-8 flex flex-col justify-between h-28 sm:h-36 relative group overflow-hidden border-white/10"
           >
             <div className="relative z-10 space-y-1">
-              <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/40 group-hover:text-white/60 transition-colors">{stat.label}</p>
-              <p className={cn("text-4xl font-black tracking-tight", stat.color)}>{stat.value}</p>
+              <p className="text-[7px] sm:text-[8px] font-bold uppercase tracking-[0.2em] text-white/40 group-hover:text-white/60 transition-colors">{stat.label}</p>
+              <p className={cn("text-2xl sm:text-4xl font-black tracking-tight", stat.color)}>{stat.value}</p>
             </div>
-            <stat.icon className={cn("absolute -bottom-4 -right-4 w-20 h-20 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-700 blur-[1px]", stat.color)} />
+            <stat.icon className={cn("absolute -bottom-2 -right-2 sm:-bottom-4 sm:-right-4 w-12 h-12 sm:w-20 sm:h-20 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-700 blur-[1px]", stat.color)} />
           </motion.div>
         ))}
       </div>
 
-      {/* Futuristic Tabs */}
-      <div className="flex flex-wrap gap-2 p-2 bg-white/5 backdrop-blur-3xl border border-white/10 rounded-2xl w-fit mx-auto justify-center">
+      {/* Desktop Tabs */}
+      <div className="hidden sm:flex flex-wrap gap-2 p-2 bg-white/5 backdrop-blur-3xl border border-white/10 rounded-2xl w-fit mx-auto justify-center">
         {[
           { id: 'overview', icon: LayoutDashboard, label: 'Overview' },
-          { id: 'chat', icon: MessageSquare, label: 'Coaching Chat' },
+          { id: 'chat', icon: MessageSquare, label: 'Performance Chat' },
           { id: 'reports', icon: BarChart3, label: 'Reports' },
           { id: 'goals', icon: Target, label: 'Domains' },
           { id: 'routine', icon: Calendar, label: 'Routine' },
@@ -184,6 +185,53 @@ export default function Dashboard({ profile }: DashboardProps) {
           </button>
         ))}
       </div>
+
+      {/* Mobile Floating Action Button (Android Style) */}
+      <div className="sm:hidden fixed bottom-24 right-6 z-[110]">
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setShowLogModal(true)}
+          className="w-16 h-16 bg-cyan-400 text-zinc-950 rounded-2xl shadow-[0_8px_30px_rgb(34,211,238,0.4)] flex items-center justify-center border border-white/20 active:bg-cyan-300 transition-colors"
+        >
+          <Plus className="w-8 h-8" />
+        </motion.button>
+      </div>
+
+      {/* Mobile Bottom Navigation */}
+      <div className="sm:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] w-[calc(100%-24px)] max-w-md">
+        <div className="p-1 px-1.5 backdrop-blur-3xl border border-white/10 bg-zinc-950/90 rounded-[28px] shadow-[0_10px_50px_rgba(0,0,0,0.8)] flex items-center justify-between">
+          {[
+            { id: 'overview', icon: LayoutDashboard, label: 'Hub' },
+            { id: 'chat', icon: MessageSquare, label: 'Chat' },
+            { id: 'routine', icon: Calendar, label: 'Plan' },
+            { id: 'goals', icon: Target, label: 'Elite' },
+            { id: 'reports', icon: BarChart3, label: 'Stats' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 flex-1 py-1 px-0.5 rounded-2xl transition-all relative h-14 min-h-[48px]",
+                activeTab === tab.id 
+                  ? "text-cyan-400" 
+                  : "text-white/30"
+              )}
+            >
+              {activeTab === tab.id && (
+                <motion.div 
+                  layoutId="mobileTabEffect" 
+                  className="absolute inset-0 bg-white/5 rounded-2xl" 
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+              <tab.icon className={cn("w-5 h-5 relative z-10", activeTab === tab.id ? "scale-110" : "scale-90 opacity-60")} />
+              <span className="relative z-10 text-[6px] font-black uppercase tracking-[0.2em]">{tab.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
 
       <AnimatePresence mode="wait">
         {activeTab === 'overview' && (
@@ -282,64 +330,64 @@ export default function Dashboard({ profile }: DashboardProps) {
             </div>
 
             {/* 1% Vision Card */}
-            <div className="lg:col-span-12 glass-card p-10 overflow-hidden relative group">
+            <div className="lg:col-span-12 glass-card p-6 sm:p-10 overflow-hidden relative group">
               <div className="absolute top-0 right-0 p-12 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity">
                 <Sparkles className="w-64 h-64 text-amber-400" />
               </div>
-              <div className="relative z-10 space-y-10">
-                <div className="flex justify-between items-end">
+              <div className="relative z-10 space-y-8 sm:space-y-10">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-2">
                   <div className="space-y-1">
-                    <p className="text-[10px] font-bold text-cyan-400 uppercase tracking-[0.6em]">Absolute Vision</p>
-                    <h3 className="text-4xl font-black italic uppercase tracking-tighter">The 1% Identity</h3>
+                    <p className="text-[8px] sm:text-[10px] font-bold text-cyan-400 uppercase tracking-[0.4em] sm:tracking-[0.6em]">Absolute Vision</p>
+                    <h3 className="text-2xl sm:text-4xl font-black italic uppercase tracking-tighter leading-tight">The 1% Identity</h3>
                   </div>
-                  <div className="hidden md:block text-right">
-                    <p className="text-[8px] font-bold text-white/30 uppercase tracking-[0.2em]">Target Freedom Date</p>
-                    <p className="text-xl font-black text-white italic">APRIL 2029</p>
+                  <div className="text-left sm:text-right">
+                    <p className="text-[7px] sm:text-[8px] font-bold text-white/30 uppercase tracking-[0.2em]">Target Freedom Date</p>
+                    <p className="text-lg sm:text-xl font-black text-white italic">APRIL 2029</p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                  <div className="space-y-3">
-                    <p className="text-[8px] font-bold text-white/30 uppercase tracking-[0.2em]">3-Year Vision</p>
-                    <p className="text-sm font-medium leading-relaxed text-white/80 italic line-clamp-3">"{profile.vision3Year || "Not defined yet..."}"</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+                  <div className="space-y-2 sm:space-y-3">
+                    <p className="text-[7px] sm:text-[8px] font-bold text-white/30 uppercase tracking-[0.2em]">3-Year Vision</p>
+                    <p className="text-xs sm:text-sm font-medium leading-relaxed text-white/80 italic line-clamp-3">"{profile.vision3Year || "Not defined yet..."}"</p>
                   </div>
-                  <div className="space-y-3">
-                    <p className="text-[8px] font-bold text-white/30 uppercase tracking-[0.2em]">Dream Career</p>
-                    <p className="text-sm font-medium leading-relaxed text-white/80 italic">"{profile.dreamCareer || "Not defined yet..."}"</p>
+                  <div className="space-y-2 sm:space-y-3">
+                    <p className="text-[7px] sm:text-[8px] font-bold text-white/30 uppercase tracking-[0.2em]">Dream Career</p>
+                    <p className="text-xs sm:text-sm font-medium leading-relaxed text-white/80 italic">"{profile.dreamCareer || "Not defined yet..."}"</p>
                   </div>
-                  <div className="space-y-3">
-                    <p className="text-[8px] font-bold text-white/30 uppercase tracking-[0.2em]">Financial Freedom</p>
-                    <p className="text-2xl font-black text-emerald-400 tracking-tighter italic">${Number(profile.targetIncome || 0).toLocaleString()}/YR</p>
+                  <div className="space-y-2 sm:space-y-3">
+                    <p className="text-[7px] sm:text-[8px] font-bold text-white/30 uppercase tracking-[0.2em]">Financial Freedom</p>
+                    <p className="text-xl sm:text-2xl font-black text-emerald-400 tracking-tighter italic">${Number(profile.targetIncome || 0).toLocaleString()}/YR</p>
                   </div>
-                  <div className="space-y-3">
-                    <p className="text-[8px] font-bold text-white/30 uppercase tracking-[0.2em]">Peak Physical Goal</p>
-                    <p className="text-sm font-medium leading-relaxed text-white/80 italic">"{profile.fitnessGoal || "Not defined yet..."}"</p>
+                  <div className="space-y-2 sm:space-y-3">
+                    <p className="text-[7px] sm:text-[8px] font-bold text-white/30 uppercase tracking-[0.2em]">Peak Physical Goal</p>
+                    <p className="text-xs sm:text-sm font-medium leading-relaxed text-white/80 italic">"{profile.fitnessGoal || "Not defined yet..."}"</p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Strategic Capture Card & Routine Preview */}
-            <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-10">
-              <div className="glass-card p-10 overflow-hidden relative group h-full">
-                <div className="relative z-10 flex flex-col justify-between h-full gap-8">
-                  <div className="space-y-4">
-                    <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-cyan-400 flex items-center gap-3">
-                      <span className="w-8 h-[1px] bg-cyan-400" />
+            <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-10">
+              <div className="glass-card p-6 sm:p-10 overflow-hidden relative group h-full">
+                <div className="relative z-10 flex flex-col justify-between h-full gap-6 sm:gap-8">
+                  <div className="space-y-3 sm:space-y-4">
+                    <p className="text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.3em] sm:tracking-[0.4em] text-cyan-400 flex items-center gap-2 sm:gap-3">
+                      <span className="w-6 sm:w-8 h-[1px] bg-cyan-400" />
                       Growth Initiative
                     </p>
-                    <h4 className="text-4xl font-black leading-tight tracking-tighter uppercase italic">
+                    <h4 className="text-3xl sm:text-4xl font-black leading-tight tracking-tighter uppercase italic">
                       Log Your <span className="text-cyan-400">Daily Progress</span>
                     </h4>
-                    <p className="text-white/40 text-sm font-medium tracking-wide">
+                    <p className="text-white/40 text-xs sm:text-sm font-medium tracking-wide">
                       Convert lessons into wisdom. Record your wins and optimize for tomorrow.
                     </p>
                   </div>
                   <button 
                     onClick={() => setShowLogModal(true)}
-                    className="shrink-0 group/btn w-full"
+                    className="shrink-0 group/btn w-full px-0"
                   >
-                    <div className="relative flex items-center justify-center gap-4 bg-white text-zinc-950 px-10 py-5 rounded-2xl font-bold uppercase tracking-[0.2em] text-xs hover:bg-cyan-400 transition-all active:scale-95">
+                    <div className="relative flex items-center justify-center gap-3 sm:gap-4 bg-white text-zinc-950 px-6 sm:px-10 py-4 sm:py-5 rounded-2xl font-bold uppercase tracking-[0.1em] sm:tracking-[0.2em] text-[10px] sm:text-xs hover:bg-cyan-400 transition-all active:scale-95 min-h-[56px]">
                       <Plus className="w-5 h-5" />
                       ADD LOG ENTRY
                     </div>
@@ -347,35 +395,35 @@ export default function Dashboard({ profile }: DashboardProps) {
                 </div>
               </div>
 
-              <div className="glass-card p-10 overflow-hidden relative group h-full cursor-pointer" onClick={() => setActiveTab('routine')}>
-                <div className="absolute top-0 right-0 p-8 opacity-[0.02] group-hover:opacity-[0.05] transition-opacity">
-                  <Calendar className="w-48 h-48 text-cyan-400" />
+              <div className="glass-card p-6 sm:p-10 overflow-hidden relative group h-full cursor-pointer" onClick={() => setActiveTab('routine')}>
+                <div className="absolute top-0 right-0 p-8 opacity-[0.01] sm:opacity-[0.02] group-hover:opacity-[0.05] transition-opacity">
+                  <Calendar className="w-32 h-32 sm:w-48 sm:h-48 text-cyan-400" />
                 </div>
-                <div className="relative z-10 space-y-8">
+                <div className="relative z-10 space-y-6 sm:space-y-8">
                   <div className="flex justify-between items-start">
                     <div className="space-y-1">
-                      <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-fuchsia-400">Daily Blueprint</p>
-                      <h4 className="text-3xl font-black italic tracking-tighter uppercase">Today's Routine</h4>
+                      <p className="text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.3em] sm:tracking-[0.4em] text-fuchsia-400">Daily Blueprint</p>
+                      <h4 className="text-2xl sm:text-3xl font-black italic tracking-tighter uppercase leading-tight">Today's Routine</h4>
                     </div>
-                    <ChevronRight className="w-6 h-6 text-white/20 group-hover:text-white group-hover:translate-x-2 transition-all" />
+                    <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 text-white/20 group-hover:text-white group-hover:translate-x-2 transition-all" />
                   </div>
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     {routines.slice(0, 3).map((r, i) => (
-                      <div key={i} className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5">
-                        <div className="flex items-center gap-4">
-                          <span className="text-xs font-black text-cyan-400 font-mono">{r.time}</span>
-                          <span className="text-[10px] font-bold uppercase text-white/80">{r.title}</span>
+                      <div key={i} className="flex items-center justify-between p-3 sm:p-4 bg-white/5 rounded-xl border border-white/5">
+                        <div className="flex items-center gap-3 sm:gap-4">
+                          <span className="text-[10px] sm:text-xs font-black text-cyan-400 font-mono">{r.time}</span>
+                          <span className="text-[9px] sm:text-[10px] font-bold uppercase text-white/80 line-clamp-1">{r.title}</span>
                         </div>
                         {r.completedTodayIndex === new Date().toISOString().split('T')[0] && (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                         )}
                       </div>
                     ))}
                     {routines.length > 3 && (
-                      <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest text-center">+{routines.length - 3} More Items</p>
+                      <p className="text-[7px] sm:text-[8px] font-bold text-white/20 uppercase tracking-widest text-center">+{routines.length - 3} More Items</p>
                     )}
                     {routines.length === 0 && (
-                      <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest py-10 text-center italic">No routine items generated yet...</p>
+                      <p className="text-[9px] sm:text-[10px] font-bold text-white/20 uppercase tracking-widest py-6 sm:py-10 text-center italic">No routine items yet...</p>
                     )}
                   </div>
                 </div>
@@ -515,16 +563,16 @@ export default function Dashboard({ profile }: DashboardProps) {
               </div>
             </div>
             <div className="text-center max-w-2xl space-y-8">
-              <h3 className="text-6xl font-black italic tracking-tighter uppercase">AI COACHING SYSTEM</h3>
+              <h3 className="text-6xl font-black italic tracking-tighter uppercase">LEVEL1X AUDIT SYSTEM</h3>
               <p className="text-white/40 text-xl font-medium leading-relaxed">
-                Unlock peak performance by synchronizing your behavioral data with our AI Growth Engine.
+                Unlock peak performance by synchronizing your behavioral data with the Level1X Audit Engine.
               </p>
               <button 
                 onClick={handleAscensionSync}
                 className="bg-white text-zinc-950 px-20 py-10 rounded-[32px] font-black uppercase tracking-[0.5em] text-sm hover:bg-fuchsia-400 hover:shadow-[0_0_60px_rgba(240,171,252,0.5)] transition-all flex items-center justify-center gap-6 mx-auto group"
               >
                 <Zap className="w-6 h-6 animate-pulse group-hover:scale-125 transition-transform" />
-                START AI ANALYSIS
+                INITIATE AUDIT
               </button>
             </div>
           </div>
