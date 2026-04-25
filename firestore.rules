@@ -1,0 +1,134 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 0. Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 3. Primitives & Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Entity Validations
+    function isValidUserProfile(data) {
+      return data.userId == request.auth.uid
+        && data.email is string
+        && data.displayName is string
+        && (data.vision3Year == null || data.vision3Year is string)
+        && (data.targetIncome == null || data.targetIncome is string)
+        && (data.dreamCareer == null || data.dreamCareer is string)
+        && (data.fitnessGoal == null || data.fitnessGoal is string);
+    }
+
+    function isValidGoal(data) {
+      return data.userId == request.auth.uid
+        && data.title is string && data.title.size() <= 200
+        && data.category is string
+        && data.status in ['pending', 'in-progress', 'completed'];
+    }
+
+    function isValidRoutine(data) {
+      return data.userId == request.auth.uid
+        && data.title is string && data.title.size() <= 200
+        && data.time is string;
+    }
+
+    function isValidLog(data) {
+      return data.userId == request.auth.uid
+        && data.date is string
+        && data.sleepHours is number;
+    }
+
+    function isValidAssessment(data) {
+      return data.userId == request.auth.uid
+        && data.answers is map;
+    }
+
+    function isValidChat(data) {
+      return data.userId == request.auth.uid
+        && data.text is string && data.text.size() <= 5000
+        && data.sender in ['user', 'ai'];
+    }
+
+    function isValidFeedback(data) {
+      return data.userId == request.auth.uid
+        && data.suggestion is string && data.suggestion.size() <= 2000;
+    }
+
+    // Collection matches
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false; // Profiles shouldn't be listed usually
+      
+      allow create: if isOwner(userId) && isValidUserProfile(incoming());
+      allow update: if isOwner(userId) 
+        && isValidUserProfile(incoming())
+        && incoming().userId == existing().userId;
+
+      // Sub-collections
+      match /goals/{goalId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(goalId) && isValidGoal(incoming());
+        allow update: if isOwner(userId) && isValidId(goalId) && isValidGoal(incoming())
+          && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      match /routines/{routineId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(routineId) && isValidRoutine(incoming());
+        allow update: if isOwner(userId) && isValidId(routineId) && isValidRoutine(incoming())
+          && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      match /logs/{logId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(logId) && isValidLog(incoming());
+        allow update: if isOwner(userId) && isValidId(logId) && isValidLog(incoming())
+          && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      match /assessments/{assessmentId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(assessmentId) && isValidAssessment(incoming());
+        allow update: if isOwner(userId) && isValidId(assessmentId) && isValidAssessment(incoming())
+          && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      match /chat/{chatId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(chatId) && isValidChat(incoming());
+        allow update: if isOwner(userId) && isValidId(chatId) && isValidChat(incoming())
+          && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+    }
+
+    match /system_feedback/{feedbackId} {
+      allow create: if isSignedIn() && isValidId(feedbackId) && isValidFeedback(incoming());
+      allow read: if false;
+    }
+  }
+}

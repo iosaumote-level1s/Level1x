@@ -1,0 +1,6 @@
+{
+  "name": "LEVEL1X",
+  "description": "level up your life daily",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["AI Analysis", "Habit Tracking", "Data Visualization"]
+}

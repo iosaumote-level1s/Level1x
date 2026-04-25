@@ -1,0 +1,137 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Individual user data and high-level preferences",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "income": { "type": "number", "description": "Annual income" },
+        "longTermGoals": { "type": "string", "description": "Free text long term vision" },
+        "completedAssessment": { "type": "boolean" },
+        "streaks": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "email"]
+    },
+    "Goal": {
+      "title": "Life Goal",
+      "description": "A specific goal within a life domain",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "category": { "type": "string", "enum": ["Money & Wealth", "Fitness & Energy", "Mindset & Focus", "Learning & Skills", "Network & Relationships", "Discipline & Habits"] },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "targetDate": { "type": "string", "format": "date" },
+        "status": { "type": "string", "enum": ["pending", "in-progress", "completed"] },
+        "progress": { "type": "number" },
+        "photoUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "category", "title"]
+    },
+    "RoutineItem": {
+      "title": "Routine Item",
+      "description": "A habit or task in the daily blueprint",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "time": { "type": "string", "description": "Expected time, e.g. 07:00" },
+        "trigger": { "type": "string", "description": "Environmental trigger" },
+        "completedToday": { "type": "boolean" },
+        "order": { "type": "number" }
+      },
+      "required": ["userId", "title"]
+    },
+    "DailyLog": {
+      "title": "Daily Log",
+      "description": "Daily recording of metrics and reflections",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "sleepHours": { "type": "number" },
+        "affirmationDone": { "type": "boolean" },
+        "meditationMinutes": { "type": "number" },
+        "meals": { "type": "array", "items": { "type": "string" } },
+        "learning": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "aiFeedback": { "type": "string" }
+      },
+      "required": ["userId", "date"]
+    },
+    "AssessmentResponse": {
+      "title": "Assessment Response",
+      "description": "Answers to the 101 life assessment questions",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "answers": { "type": "object" },
+        "rawScore": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "answers"]
+    },
+    "UserFeedback": {
+      "title": "User Feedback",
+      "description": "System suggestions from users",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "suggestion": { "type": "string" },
+        "category": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "suggestion"]
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "description": "A message in a chat conversation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "text": { "type": "string" },
+        "sender": { "type": "string", "enum": ["user", "ai"] },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "text", "sender", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Root user profile document"
+    },
+    "/users/{userId}/goals/{goalId}": {
+      "schema": "Goal",
+      "description": "Individual goals per category"
+    },
+    "/users/{userId}/routines/{routineId}": {
+      "schema": "RoutineItem",
+      "description": "Daily habitual routine items"
+    },
+    "/users/{userId}/logs/{logId}": {
+      "schema": "DailyLog",
+      "description": "Daily performance logs"
+    },
+    "/users/{userId}/assessments/{assessmentId}": {
+      "schema": "AssessmentResponse",
+      "description": "Stored assessment data"
+    },
+    "/users/{userId}/chat/{chatId}": {
+      "schema": "ChatMessage",
+      "description": "Individual chat messages"
+    },
+    "/system_feedback/{feedbackId}": {
+      "schema": "UserFeedback",
+      "description": "Global feedback collection"
+    }
+  }
+}
