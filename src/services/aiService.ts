@@ -1,7 +1,18 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { UserProfile, DailyLog, Goal, AssessmentResponse, ChatMessage, RoutineItem, PeriodicReport } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+let aiInstance: GoogleGenAI | null = null;
+
+function getAI() {
+  if (aiInstance) return aiInstance;
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) {
+    console.warn("GEMINI_API_KEY is not defined. AI features will be disabled.");
+    return null;
+  }
+  aiInstance = new GoogleGenAI({ apiKey: key });
+  return aiInstance;
+}
 
 export interface AscensionAnalysis {
   progressSummary: string;
@@ -17,6 +28,9 @@ export async function generateAscensionAnalysis(
   recentLogs: DailyLog[], 
   assessment?: AssessmentResponse
 ): Promise<AscensionAnalysis | null> {
+  const ai = getAI();
+  if (!ai) return null;
+
   const prompt = `
     Analyze the progress of user ${user.displayName} (ID: ${user.userId}) in their life optimization journey.
     
@@ -73,6 +87,14 @@ export async function generateAscensionAnalysis(
 }
 
 export async function generateRecommendedRoutine(assessment: AssessmentResponse): Promise<Partial<RoutineItem>[]> {
+  const ai = getAI();
+  if (!ai) {
+    return [
+      { title: "Physical Training", time: "07:00", trigger: "Immediately after waking" },
+      { title: "Deep Work Session", time: "09:00", trigger: "After breakfast" },
+      { title: "Mindfulness Sync", time: "21:00", trigger: "Before bed" }
+    ];
+  }
   const prompt = `
     Based on this initial life assessment and the user's ultimate "1% Vision", suggest an ideal daily routine with 7-10 core habits.
     
@@ -123,6 +145,8 @@ export async function generateRecommendedRoutine(assessment: AssessmentResponse)
 }
 
 export async function generatePeriodicReport(logs: DailyLog[], period: '7 days' | '15 days' | 'month' | 'quarter' | 'six month' | 'year'): Promise<PeriodicReport | null> {
+  const ai = getAI();
+  if (!ai) return null;
   const prompt = `
     Analyze ${logs.length} days of logs for the past ${period}.
     Logs Data: ${JSON.stringify(logs)}
@@ -159,6 +183,8 @@ export async function generatePeriodicReport(logs: DailyLog[], period: '7 days' 
 }
 
 export async function conductDailyChat(history: ChatMessage[], message: string, userProfile: UserProfile): Promise<string> {
+  const ai = getAI();
+  if (!ai) return "I'm here for you. Tell me more about your day! What was your one win?";
   const prompt = `
     User Profile (Identity & Vision):
     - Name: ${userProfile.displayName}
@@ -201,6 +227,8 @@ export async function conductDailyChat(history: ChatMessage[], message: string, 
 }
 
 export async function analyzeDailyLog(log: DailyLog) {
+  const ai = getAI();
+  if (!ai) return "Great job today! Keep moving forward.";
   const prompt = `
     Analyze Daily Log for: ${log.date}
     - Sleep: ${log.sleepHours}h

@@ -16,10 +16,24 @@ const getFirebaseConfig = () => {
   return firebaseConfigJSON;
 };
 
-const config = getFirebaseConfig();
-const app = initializeApp(config);
-export const db = getFirestore(app, config.firestoreDatabaseId);
-export const auth = getAuth(app);
+let app;
+let db: any;
+let auth: any;
+
+try {
+  const config = getFirebaseConfig();
+  if (!config || !config.apiKey) {
+    throw new Error("Invalid Firebase configuration. Please check VITE_FIREBASE_CONFIG.");
+  }
+  app = initializeApp(config);
+  db = getFirestore(app, config.firestoreDatabaseId);
+  auth = getAuth(app);
+} catch (error) {
+  console.error("Firebase initialization failed:", error);
+  // We'll export dummy/throwing versions or just handle it in components
+}
+
+export { db, auth };
 
 // Connectivity check
 async function testConnection() {

@@ -16,6 +16,12 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!auth || !db) {
+      setError("CONFIGURATION ERROR: FIREBASE NOT INITIALIZED. PLEASE CHECK YOUR ENVIRONMENT VARIABLES.");
+      setLoading(false);
+      return;
+    }
+
     let unsubscribeProfile: (() => void) | null = null;
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (u) => {
@@ -55,7 +61,7 @@ export default function App() {
   }, []);
 
   const login = async () => {
-    if (loggingIn) return;
+    if (loggingIn || !auth) return;
     setLoggingIn(true);
     setError(null);
     try {
@@ -73,7 +79,7 @@ export default function App() {
       setLoggingIn(false);
     }
   };
-  const logout = () => signOut(auth);
+  const logout = () => auth && signOut(auth);
 
   const quotes = [
     "YOUR ONLY LIMIT IS THE ONE YOU SET.",
