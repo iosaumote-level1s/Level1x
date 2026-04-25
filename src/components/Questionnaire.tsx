@@ -47,26 +47,35 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
 
       // Generate suggested routine
       const suggestedItems = await generateRecommendedRoutine(assessmentData);
+      
+      const { writeBatch } = await import('firebase/firestore');
+      const batch = writeBatch(db);
+      
       const routinesRef = collection(db, 'users', auth.currentUser.uid, 'routines');
       
       for (const item of suggestedItems) {
-        await addDoc(routinesRef, {
+        const newRoutineRef = doc(routinesRef);
+        batch.set(newRoutineRef, {
           userId: auth.currentUser.uid,
           title: item.title,
           time: item.time,
           trigger: item.trigger,
           order: 0,
-          completedTodayIndex: ""
+          completedTodayIndex: "",
+          createdAt: timestamp
         });
       }
 
-      await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+      const userRef = doc(db, 'users', auth.currentUser.uid);
+      batch.update(userRef, {
         completedAssessment: true,
         vision3Year: answers['vision3Year'] || '',
         targetIncome: answers['targetIncome']?.toString() || '0',
         dreamCareer: answers['dreamCareer'] || '',
         fitnessGoal: answers['fitnessGoal'] || ''
       });
+
+      await batch.commit();
 
       onComplete();
     } catch (err) {

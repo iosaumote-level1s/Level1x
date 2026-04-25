@@ -4,7 +4,7 @@ import { db, auth } from '../lib/firebase';
 import { collection, query, onSnapshot, doc, setDoc, addDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, CheckCircle2, TrendingUp, DollarSign, Heart, Brain, Book, Users, Zap, LayoutDashboard, Target, Calendar, MessageSquare, Camera, Star, Activity, BarChart3, Sparkles } from 'lucide-react';
+import { Plus, CheckCircle2, TrendingUp, DollarSign, Heart, Brain, Book, Users, Zap, LayoutDashboard, Target, Calendar, MessageSquare, Camera, Star, Activity, BarChart3, Sparkles, ChevronRight } from 'lucide-react';
 import GoalCard from './GoalCard';
 import RoutineList from './RoutineList';
 import FeedbackSystem from './FeedbackSystem';
@@ -319,30 +319,66 @@ export default function Dashboard({ profile }: DashboardProps) {
               </div>
             </div>
 
-            {/* Strategic Capture Card */}
-            <div className="lg:col-span-12 glass-card p-10 overflow-hidden relative group">
-              <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-12">
-                <div className="max-w-2xl space-y-4">
-                  <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-cyan-400 flex items-center gap-3">
-                    <span className="w-8 h-[1px] bg-cyan-400" />
-                    Growth Initiative
-                  </p>
-                  <h4 className="text-4xl md:text-5xl font-black leading-tight tracking-tighter uppercase italic">
-                    Log Your <span className="text-cyan-400">Daily Progress</span>
-                  </h4>
-                  <p className="text-white/40 text-sm font-medium tracking-wide">
-                    Convert lessons into wisdom. Record your wins and optimize for tomorrow.
-                  </p>
-                </div>
-                <button 
-                  onClick={() => setShowLogModal(true)}
-                  className="shrink-0 group/btn"
-                >
-                  <div className="relative flex items-center justify-center gap-4 bg-white text-zinc-950 px-10 py-5 rounded-2xl font-bold uppercase tracking-[0.2em] text-xs hover:bg-cyan-400 transition-all active:scale-95">
-                    <Plus className="w-5 h-5" />
-                    ADD LOG ENTRY
+            {/* Strategic Capture Card & Routine Preview */}
+            <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-10">
+              <div className="glass-card p-10 overflow-hidden relative group h-full">
+                <div className="relative z-10 flex flex-col justify-between h-full gap-8">
+                  <div className="space-y-4">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-cyan-400 flex items-center gap-3">
+                      <span className="w-8 h-[1px] bg-cyan-400" />
+                      Growth Initiative
+                    </p>
+                    <h4 className="text-4xl font-black leading-tight tracking-tighter uppercase italic">
+                      Log Your <span className="text-cyan-400">Daily Progress</span>
+                    </h4>
+                    <p className="text-white/40 text-sm font-medium tracking-wide">
+                      Convert lessons into wisdom. Record your wins and optimize for tomorrow.
+                    </p>
                   </div>
-                </button>
+                  <button 
+                    onClick={() => setShowLogModal(true)}
+                    className="shrink-0 group/btn w-full"
+                  >
+                    <div className="relative flex items-center justify-center gap-4 bg-white text-zinc-950 px-10 py-5 rounded-2xl font-bold uppercase tracking-[0.2em] text-xs hover:bg-cyan-400 transition-all active:scale-95">
+                      <Plus className="w-5 h-5" />
+                      ADD LOG ENTRY
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              <div className="glass-card p-10 overflow-hidden relative group h-full cursor-pointer" onClick={() => setActiveTab('routine')}>
+                <div className="absolute top-0 right-0 p-8 opacity-[0.02] group-hover:opacity-[0.05] transition-opacity">
+                  <Calendar className="w-48 h-48 text-cyan-400" />
+                </div>
+                <div className="relative z-10 space-y-8">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-fuchsia-400">Daily Blueprint</p>
+                      <h4 className="text-3xl font-black italic tracking-tighter uppercase">Today's Routine</h4>
+                    </div>
+                    <ChevronRight className="w-6 h-6 text-white/20 group-hover:text-white group-hover:translate-x-2 transition-all" />
+                  </div>
+                  <div className="space-y-4">
+                    {routines.slice(0, 3).map((r, i) => (
+                      <div key={i} className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5">
+                        <div className="flex items-center gap-4">
+                          <span className="text-xs font-black text-cyan-400 font-mono">{r.time}</span>
+                          <span className="text-[10px] font-bold uppercase text-white/80">{r.title}</span>
+                        </div>
+                        {r.completedTodayIndex === new Date().toISOString().split('T')[0] && (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        )}
+                      </div>
+                    ))}
+                    {routines.length > 3 && (
+                      <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest text-center">+{routines.length - 3} More Items</p>
+                    )}
+                    {routines.length === 0 && (
+                      <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest py-10 text-center italic">No routine items generated yet...</p>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 
