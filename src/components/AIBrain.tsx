@@ -7,11 +7,12 @@ import { cn } from '../lib/utils';
 interface AIBrainProps {
   analysis: AscensionAnalysis | null;
   loading: boolean;
+  error?: string | null;
   onClose: () => void;
   onSync: () => void;
 }
 
-export default function AIBrain({ analysis, loading, onClose, onSync }: AIBrainProps) {
+export default function AIBrain({ analysis, loading, error, onClose, onSync }: AIBrainProps) {
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center sm:p-12">
       <motion.div 
@@ -46,17 +47,22 @@ export default function AIBrain({ analysis, loading, onClose, onSync }: AIBrainP
                 </div>
               </div>
               <div className="max-w-xs sm:max-w-md space-y-3 sm:space-y-4">
-                <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-tight italic text-white">SYSTEM OFFLINE</h3>
+                <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-tight italic text-white">
+                  {error ? "SYNC_INTERRUPTED" : "SYSTEM OFFLINE"}
+                </h3>
                 <p className="text-white/40 text-xs sm:text-sm font-medium tracking-wide leading-relaxed">
-                  Initiate a strategic audit to process performance data.
+                  {error ? `Critical failure: ${error}. Verify network and retry protocol.` : "Initiate a strategic audit to process performance data."}
                 </p>
               </div>
               <button 
                 onClick={onSync}
-                className="bg-white text-zinc-950 px-8 sm:px-12 py-4 sm:py-5 rounded-xl sm:rounded-2xl font-bold uppercase tracking-[0.2em] sm:tracking-[0.3em] text-[10px] sm:text-xs hover:bg-cyan-400 hover:shadow-lg transition-all flex items-center gap-3 sm:gap-4 min-h-[56px]"
+                className={cn(
+                  "bg-white text-zinc-950 px-8 sm:px-12 py-4 sm:py-5 rounded-xl sm:rounded-2xl font-bold uppercase tracking-[0.2em] sm:tracking-[0.3em] text-[10px] sm:text-xs transition-all flex items-center gap-3 sm:gap-4 min-h-[56px]",
+                  error ? "hover:bg-fuchsia-400" : "hover:bg-cyan-400"
+                )}
               >
                 <Zap className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
-                INITIATE PERFORMANCE SYNC
+                {error ? "RETRY ASCENSION" : "INITIATE PERFORMANCE SYNC"}
               </button>
             </div>
           ) : loading ? (

@@ -39,6 +39,7 @@ export default function Dashboard({ profile }: DashboardProps) {
   const [showBrainModal, setShowBrainModal] = useState(false);
   const [analysis, setAnalysis] = useState<AscensionAnalysis | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!auth.currentUser) return;
@@ -68,12 +69,15 @@ export default function Dashboard({ profile }: DashboardProps) {
   const handleAscensionSync = async () => {
     if (analyzing || !profile) return;
     setAnalyzing(true);
+    setSyncError(null);
     setShowBrainModal(true);
     try {
       const res = await generateAscensionAnalysis(profile, goals, logs);
+      if (!res) throw new Error("PERFORMANCE ENGINE OFFLINE");
       setAnalysis(res);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setSyncError(err.message || "SYNC_FAILURE");
     } finally {
       setAnalyzing(false);
     }
@@ -130,6 +134,7 @@ export default function Dashboard({ profile }: DashboardProps) {
           <AIBrain 
             analysis={analysis} 
             loading={analyzing} 
+            error={syncError}
             onClose={() => setShowBrainModal(false)}
             onSync={handleAscensionSync}
           />
@@ -563,17 +568,24 @@ export default function Dashboard({ profile }: DashboardProps) {
               </div>
             </div>
             <div className="text-center max-w-2xl space-y-8">
-              <h3 className="text-6xl font-black italic tracking-tighter uppercase">LEVEL1X AUDIT SYSTEM</h3>
+              <h3 className="text-6xl font-black italic tracking-tighter uppercase">LEVEL1X ASCENSION SYSTEM</h3>
               <p className="text-white/40 text-xl font-medium leading-relaxed">
                 Unlock peak performance by synchronizing your behavioral data with the Level1X Audit Engine.
               </p>
-              <button 
-                onClick={handleAscensionSync}
-                className="bg-white text-zinc-950 px-20 py-10 rounded-[32px] font-black uppercase tracking-[0.5em] text-sm hover:bg-fuchsia-400 hover:shadow-[0_0_60px_rgba(240,171,252,0.5)] transition-all flex items-center justify-center gap-6 mx-auto group"
-              >
-                <Zap className="w-6 h-6 animate-pulse group-hover:scale-125 transition-transform" />
-                INITIATE AUDIT
-              </button>
+              <div className="space-y-4">
+                <button 
+                  onClick={handleAscensionSync}
+                  className="bg-white text-zinc-950 px-20 py-10 rounded-[32px] font-black uppercase tracking-[0.5em] text-sm hover:bg-fuchsia-400 hover:shadow-[0_0_60px_rgba(240,171,252,0.5)] transition-all flex items-center justify-center gap-6 mx-auto group"
+                >
+                  <Zap className="w-6 h-6 animate-pulse group-hover:scale-125 transition-transform" />
+                  INITIATE ASCENSION
+                </button>
+                {syncError && (
+                  <p className="text-fuchsia-400 font-bold uppercase tracking-widest text-xs animate-pulse">
+                    ERROR: {syncError.toUpperCase()}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         )}

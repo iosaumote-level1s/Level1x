@@ -68,13 +68,15 @@ export default function App() {
       await signInWithPopup(auth, new GoogleAuthProvider());
     } catch (err: any) {
       console.error("Login error:", err);
+      let msg = 'SYSTEM ERROR: LOGIN FAILED';
       if (err.code === 'auth/popup-blocked') {
-        setError('POPUP BLOCKED: PLEASE ENABLE POPUPS');
+        msg = 'POPUP BLOCKED: PLEASE ENABLE POPUPS';
       } else if (err.code === 'auth/cancelled-popup-request') {
-        setError('LOGIN CANCELLED');
-      } else {
-        setError('SYSTEM ERROR: LOGIN FAILED');
+        msg = 'LOGIN CANCELLED';
+      } else if (err.message) {
+        msg = `LOGIN ERROR: ${err.message.toUpperCase()}`;
       }
+      setError(msg);
     } finally {
       setLoggingIn(false);
     }
