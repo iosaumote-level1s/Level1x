@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useEffect } from 'react';
 import { auth, db } from './lib/firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User } from 'firebase/auth';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
@@ -6,8 +6,8 @@ import { UserProfile } from './types';
 import { motion, AnimatePresence } from 'motion/react';
 import { LogIn, LogOut, Loader2, Sparkles, Zap, Shield, Activity, Bell } from 'lucide-react';
 
-const Dashboard = lazy(() => import('./components/Dashboard'));
-const Questionnaire = lazy(() => import('./components/Questionnaire'));
+import Dashboard from './components/Dashboard';
+import Questionnaire from './components/Questionnaire';
 
 const QUOTES = [
   "YOUR ONLY LIMIT IS THE ONE YOU SET.",
@@ -253,19 +253,40 @@ export default function App() {
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-6 sm:py-12 relative z-10 pb-24 sm:pb-12">
-        <Suspense fallback={
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
-          </div>
-        }>
-          <AnimatePresence mode="wait">
-            {!profile?.completedAssessment ? (
-              <Questionnaire key="survey" onComplete={() => setProfile(p => p ? {...p, completedAssessment: true} : null)} />
-            ) : (
-              <Dashboard key="dashboard" profile={profile} />
-            )}
-          </AnimatePresence>
-        </Suspense>
+        <AnimatePresence mode="wait">
+          {!profile ? (
+            <motion.div 
+              key="loading-profile" 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex flex-col items-center justify-center py-24 sm:py-40 gap-6"
+            >
+              <Loader2 className="w-10 h-10 animate-spin text-cyan-400" />
+              <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-white/20">Syncing Protocol...</p>
+            </motion.div>
+          ) : !profile.completedAssessment ? (
+            <motion.div
+              key="survey"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Questionnaire onComplete={() => setProfile(prev => prev ? { ...prev, completedAssessment: true } : null)} />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="dashboard"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Dashboard profile={profile} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       <footer className="max-w-7xl mx-auto px-6 sm:px-16 py-12 sm:py-20 flex flex-col sm:flex-row justify-between items-center gap-6 sm:gap-10 border-t border-white/5 opacity-20 relative z-10 mb-20 sm:mb-0">
@@ -281,6 +302,5 @@ export default function App() {
         </div>
       </footer>
     </div>
-
   );
 }

@@ -86,7 +86,12 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-10 sm:py-20 min-h-[100dvh] sm:min-h-[85vh] flex flex-col justify-center relative px-2">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="max-w-4xl mx-auto py-10 sm:py-20 min-h-[100dvh] sm:min-h-[85vh] flex flex-col justify-center relative px-2"
+    >
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-cyan-400/5 blur-[120px] rounded-full pointer-events-none" />
       
       <div className="mb-10 sm:mb-20 space-y-4 sm:space-y-6 relative z-10 px-4 sm:px-10">
@@ -258,6 +263,6 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
           <span className="font-bold text-[7px] sm:text-[9px] tracking-[0.4em] sm:tracking-[0.6em] text-white/20 uppercase">UPLINK_STABLE</span>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

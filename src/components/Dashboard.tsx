@@ -116,7 +116,12 @@ export default function Dashboard({ profile }: DashboardProps) {
   const greeting = useMemo(() => getGreeting(), []);
 
   return (
-    <div className="space-y-12 sm:space-y-16 pb-32 sm:pb-24 relative">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="space-y-12 sm:space-y-16 pb-32 sm:pb-24 relative"
+    >
       {/* Personalized Greeting */}
       <motion.div 
         initial={{ opacity: 0, x: -20 }}
@@ -130,7 +135,7 @@ export default function Dashboard({ profile }: DashboardProps) {
           {greeting}, <br className="sm:hidden" /> <span className="text-white/40">great to see you</span>.
         </h2>
         <p className="text-white/40 font-medium tracking-wide text-xs sm:text-base">
-          Ready to dominate the 1% tier today, {profile.displayName}?
+          Ready to dominate the 1% tier today, {profile?.displayName || 'Champion'}?
         </p>
       </motion.div>
 
@@ -601,6 +606,6 @@ export default function Dashboard({ profile }: DashboardProps) {
           <LogForm onClose={() => setShowLogModal(false)} />
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 }

@@ -19,7 +19,9 @@ export default function NotificationTriggers({ routines, goals }: NotificationTr
 
       // Check routines (within 30 mins window)
       const currentRoutine = routines.find(r => {
+        if (!r.time || typeof r.time !== 'string' || !r.time.includes(':')) return false;
         const [hour, min] = r.time.split(':').map(Number);
+        if (isNaN(hour) || isNaN(min)) return false;
         const rMinutes = hour * 60 + min;
         return Math.abs(currentMinutes - rMinutes) < 30;
       });
