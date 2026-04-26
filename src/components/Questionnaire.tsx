@@ -21,15 +21,16 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
   const progress = ((step + 1) / ASSESSMENT_QUESTIONS.length) * 100;
 
   const handleNext = async () => {
+    if (isSubmitting) return;
     if (step < ASSESSMENT_QUESTIONS.length - 1) {
-      setStep(step + 1);
+      setStep(prev => prev + 1);
     } else {
       await handleSubmit();
     }
   };
 
   const handleSubmit = async () => {
-    if (!auth.currentUser) return;
+    if (!auth.currentUser || isSubmitting) return;
     setIsSubmitting(true);
     try {
       const timestamp = new Date().toISOString();

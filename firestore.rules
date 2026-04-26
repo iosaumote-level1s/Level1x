@@ -33,6 +33,9 @@ service cloud.firestore {
       return data.userId == request.auth.uid
         && data.email is string
         && data.displayName is string
+        && (data.completedAssessment == null || data.completedAssessment is bool)
+        && (data.createdAt == null || data.createdAt is string)
+        && (data.streaks == null || data.streaks is map)
         && (data.vision3Year == null || data.vision3Year is string)
         && (data.targetIncome == null || data.targetIncome is string)
         && (data.dreamCareer == null || data.dreamCareer is string)

@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { db, auth } from '../lib/firebase';
+import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { collection, query, onSnapshot, addDoc, doc, updateDoc, deleteDoc, orderBy } from 'firebase/firestore';
 import { RoutineItem } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, CheckCircle2, Clock, Zap, MoreVertical, Trash2 } from 'lucide-react';
+import { Plus, CheckCircle2, Clock, Zap, MoreVertical, Trash2, Loader2, AlertCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export default function RoutineList() {
   const [routines, setRoutines] = useState<RoutineItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState('');
   const [newTime, setNewTime] = useState('08:00');
   const [newTrigger, setNewTrigger] = useState('');
@@ -15,9 +17,23 @@ export default function RoutineList() {
 
   useEffect(() => {
     if (!auth.currentUser) return;
-    const rQuery = query(collection(db, 'users', auth.currentUser.uid, 'routines'), orderBy('order'));
+    const uid = auth.currentUser.uid;
+    const path = `users/${uid}/routines`;
+    
+    setLoading(true);
+    const rQuery = query(collection(db, path), orderBy('order'));
+    
     return onSnapshot(rQuery, (snap) => {
       setRoutines(snap.docs.map(d => ({ ...d.data(), id: d.id } as RoutineItem)));
+      setLoading(false);
+      setError(null);
+    }, (err) => {
+      setLoading(false);
+      try {
+        handleFirestoreError(err, OperationType.LIST, path);
+      } catch (e: any) {
+        setError(e.message);
+      }
     });
   }, []);
 
@@ -115,62 +131,78 @@ export default function RoutineList() {
       </AnimatePresence>
 
       <div className="space-y-4 sm:space-y-6">
-        {routines.map((r, i) => (
-          <motion.div 
-            key={r.id}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.05 }}
-            className={cn(
-              "p-6 sm:p-8 glass-card flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-8 group relative",
-              r.completedTodayIndex === today && "opacity-40 grayscale-[0.5]"
-            )}
-          >
-            <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-fuchsia-400 to-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-            
-            <div className="flex flex-row items-center gap-6 sm:gap-10 flex-1 w-full sm:w-auto">
-              <div className="text-center min-w-[70px] sm:min-w-[100px]">
-                <p className="text-[6px] sm:text-[7px] font-bold text-white/30 uppercase tracking-[0.2em] sm:tracking-[0.3em] mb-1 sm:mb-2 text-nowrap">Target Time</p>
-                <p className="text-2xl sm:text-4xl font-black text-white tabular-nums tracking-tighter leading-none">{r.time}</p>
-              </div>
-              
-              <div className="w-[1px] h-10 sm:h-12 bg-white/10" />
-              
-              <div className="space-y-1 sm:space-y-2 flex-1">
-                <h4 className={cn("text-lg sm:text-2xl font-bold uppercase tracking-tight transition-all italic leading-tight", r.completedTodayIndex === today ? "line-through text-white/30" : "text-white")}>{r.title}</h4>
-                {r.trigger && (
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <span className="w-1 h-1 rounded-full bg-cyan-400 shrink-0" />
-                    <p className="text-[7px] sm:text-[9px] text-white/50 font-bold uppercase tracking-[0.1em] sm:tracking-[0.15em] line-clamp-1">Trigger: {r.trigger}</p>
-                  </div>
-                )}
-              </div>
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-24 sm:py-32 gap-6 bg-white/5 rounded-3xl border border-white/5">
+            <Loader2 className="w-10 h-10 animate-spin text-cyan-400" />
+            <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-white/20">Accessing Blueprint...</p>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-24 sm:py-32 gap-6 glass-card border-white/10 text-center">
+            <AlertCircle className="w-10 h-10 text-fuchsia-400/50" />
+            <div className="space-y-2">
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-fuchsia-400/50">Link Interrupted</p>
+              <p className="text-[10px] text-white/20 font-medium max-w-xs mx-auto">Routine data temporarily unavailable.</p>
             </div>
-
-            <div className="flex items-center justify-between sm:justify-start gap-4 w-full sm:w-auto border-t border-white/5 pt-4 sm:pt-0 sm:border-0">
-              <button 
-                onClick={() => toggleComplete(r)}
-                className={cn(
-                  "flex-1 sm:flex-none w-auto sm:w-16 h-12 sm:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center transition-all border shrink-0 min-h-[48px]",
-                  r.completedTodayIndex === today 
-                    ? "bg-white text-zinc-950 border-white shadow-lg" 
-                    : "bg-white/5 text-white/20 hover:text-cyan-400 border-white/10 hover:border-cyan-400/50"
-                )}
-              >
-                <CheckCircle2 className="w-6 h-6 sm:w-8 sm:h-8" />
-              </button>
+            <button onClick={() => window.location.reload()} className="px-6 py-2 bg-white/5 rounded-full text-[9px] font-bold uppercase tracking-widest hover:bg-white/10 transition-all">Retry Sync</button>
+          </div>
+        ) : (
+          routines.map((r, i) => (
+            <motion.div 
+              key={r.id}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.05 }}
+              className={cn(
+                "p-6 sm:p-8 glass-card flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-8 group relative",
+                r.completedTodayIndex === today && "opacity-40 grayscale-[0.5]"
+              )}
+            >
+              <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-fuchsia-400 to-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity" />
               
-              <button 
-                onClick={() => deleteDoc(doc(db, 'users', auth.currentUser!.uid, 'routines', r.id))}
-                className="p-3 text-white/30 hover:text-red-400 transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100 min-h-[48px] min-w-[48px] flex items-center justify-center"
-              >
-                <Trash2 className="w-5 h-5" />
-              </button>
-            </div>
-          </motion.div>
-        ))}
+              <div className="flex flex-row items-center gap-6 sm:gap-10 flex-1 w-full sm:w-auto">
+                <div className="text-center min-w-[70px] sm:min-w-[100px]">
+                  <p className="text-[6px] sm:text-[7px] font-bold text-white/30 uppercase tracking-[0.2em] sm:tracking-[0.3em] mb-1 sm:mb-2 text-nowrap">Target Time</p>
+                  <p className="text-2xl sm:text-4xl font-black text-white tabular-nums tracking-tighter leading-none">{r.time}</p>
+                </div>
+                
+                <div className="w-[1px] h-10 sm:h-12 bg-white/10" />
+                
+                <div className="space-y-1 sm:space-y-2 flex-1">
+                  <h4 className={cn("text-lg sm:text-2xl font-bold uppercase tracking-tight transition-all italic leading-tight", r.completedTodayIndex === today ? "line-through text-white/30" : "text-white")}>{r.title}</h4>
+                  {r.trigger && (
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <span className="w-1 h-1 rounded-full bg-cyan-400 shrink-0" />
+                      <p className="text-[7px] sm:text-[9px] text-white/50 font-bold uppercase tracking-[0.1em] sm:tracking-[0.15em] line-clamp-1">Trigger: {r.trigger}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
 
-        {routines.length === 0 && !isAdding && (
+              <div className="flex items-center justify-between sm:justify-start gap-4 w-full sm:w-auto border-t border-white/5 pt-4 sm:pt-0 sm:border-0">
+                <button 
+                  onClick={() => toggleComplete(r)}
+                  className={cn(
+                    "flex-1 sm:flex-none w-auto sm:w-16 h-12 sm:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center transition-all border shrink-0 min-h-[48px]",
+                    r.completedTodayIndex === today 
+                      ? "bg-white text-zinc-950 border-white shadow-lg" 
+                      : "bg-white/5 text-white/20 hover:text-cyan-400 border-white/10 hover:border-cyan-400/50"
+                  )}
+                >
+                  <CheckCircle2 className="w-6 h-6 sm:w-8 sm:h-8" />
+                </button>
+                
+                <button 
+                  onClick={() => deleteDoc(doc(db, 'users', auth.currentUser!.uid, 'routines', r.id))}
+                  className="p-3 text-white/30 hover:text-red-400 transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100 min-h-[48px] min-w-[48px] flex items-center justify-center"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
+            </motion.div>
+          ))
+        )}
+
+        {routines.length === 0 && !isAdding && !loading && !error && (
           <div className="py-12 sm:py-20 text-center glass-card border-dashed border-white/10 space-y-4 sm:space-y-6 bg-transparent">
             <div className="flex justify-center">
               <div className="p-6 sm:p-8 bg-white/5 rounded-full text-white/20 border border-white/5">

@@ -42,7 +42,16 @@ export default function App() {
         // Listen for real-time updates to the profile
         unsubscribeProfile = onSnapshot(docRef, (docSnap) => {
           if (docSnap.exists()) {
-            setProfile(docSnap.data() as UserProfile);
+            const data = docSnap.data() as UserProfile;
+            // Only update state if data actually changed significantly or if it's the first load
+            setProfile(prev => {
+              if (!prev) return data;
+              // Compare simple fields to avoid unnecessary updates/rerenders
+              if (prev.completedAssessment !== data.completedAssessment || prev.displayName !== data.displayName) {
+                return data;
+              }
+              return prev;
+            });
           } else {
             const newProfile: UserProfile = {
               userId: u.uid,
@@ -230,7 +239,7 @@ export default function App() {
         </div>
         
         <div className="flex items-center gap-4 sm:gap-12">
-          {profile && (
+          {profile?.completedAssessment && (
             <div className="flex gap-4 sm:gap-8">
               <div className="text-right hidden sm:block space-y-1">
                 <p className="text-[8px] uppercase tracking-[0.2em] font-bold text-white/30">Overall Rank</p>

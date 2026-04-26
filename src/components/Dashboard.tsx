@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { UserProfile, Goal, DailyLog, GoalCategory, RoutineItem } from '../types';
-import { db, auth } from '../lib/firebase';
+import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { collection, query, onSnapshot, addDoc } from 'firebase/firestore';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, TooltipProps } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, CheckCircle2, TrendingUp, DollarSign, Heart, Brain, Book, Users, Zap, LayoutDashboard, Target, Calendar, MessageSquare, Activity, BarChart3, Sparkles, ChevronRight } from 'lucide-react';
+import { Plus, CheckCircle2, TrendingUp, DollarSign, Heart, Brain, Book, Users, Zap, LayoutDashboard, Target, Calendar, MessageSquare, Activity, BarChart3, Sparkles, ChevronRight, Loader2, AlertCircle, RefreshCcw, Star } from 'lucide-react';
 import GoalCard from './GoalCard';
 import RoutineList from './RoutineList';
 import LogForm from './LogForm';
@@ -51,6 +51,15 @@ export default function Dashboard({ profile }: DashboardProps) {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [logs, setLogs] = useState<DailyLog[]>([]);
   const [routines, setRoutines] = useState<RoutineItem[]>([]);
+  
+  const [loadingGoals, setLoadingGoals] = useState(true);
+  const [loadingLogs, setLoadingLogs] = useState(true);
+  const [loadingRoutines, setLoadingRoutines] = useState(true);
+  
+  const [goalsError, setGoalsError] = useState<string | null>(null);
+  const [logsError, setLogsError] = useState<string | null>(null);
+  const [routinesError, setRoutinesError] = useState<string | null>(null);
+
   const [activeTab, setActiveTab] = useState<'overview' | 'goals' | 'routine' | 'chat' | 'reports' | 'feedback'>('overview');
   const [showLogModal, setShowLogModal] = useState(false);
   const [showBrainModal, setShowBrainModal] = useState(false);
@@ -61,19 +70,55 @@ export default function Dashboard({ profile }: DashboardProps) {
   useEffect(() => {
     if (!auth.currentUser) return;
     
-    const goalsQuery = query(collection(db, 'users', auth.currentUser.uid, 'goals'));
+    const uid = auth.currentUser.uid;
+    const goalsPath = `users/${uid}/goals`;
+    const logsPath = `users/${uid}/logs`;
+    const routinesPath = `users/${uid}/routines`;
+
+    setLoadingGoals(true);
+    setLoadingLogs(true);
+    setLoadingRoutines(true);
+
+    const goalsQuery = query(collection(db, goalsPath));
     const unsubscribeGoals = onSnapshot(goalsQuery, (snap) => {
       setGoals(snap.docs.map(d => ({ ...d.data(), id: d.id } as Goal)));
+      setLoadingGoals(false);
+      setGoalsError(null);
+    }, (err) => {
+      setLoadingGoals(false);
+      try {
+        handleFirestoreError(err, OperationType.GET, goalsPath);
+      } catch (e: any) {
+        setGoalsError(e.message);
+      }
     });
 
-    const logsQuery = query(collection(db, 'users', auth.currentUser.uid, 'logs'));
+    const logsQuery = query(collection(db, logsPath));
     const unsubscribeLogs = onSnapshot(logsQuery, (snap) => {
       setLogs(snap.docs.map(d => d.data() as DailyLog));
+      setLoadingLogs(false);
+      setLogsError(null);
+    }, (err) => {
+      setLoadingLogs(false);
+      try {
+        handleFirestoreError(err, OperationType.GET, logsPath);
+      } catch (e: any) {
+        setLogsError(e.message);
+      }
     });
 
-    const routinesQuery = query(collection(db, 'users', auth.currentUser.uid, 'routines'));
+    const routinesQuery = query(collection(db, routinesPath));
     const unsubscribeRoutines = onSnapshot(routinesQuery, (snap) => {
       setRoutines(snap.docs.map(d => ({ ...d.data(), id: d.id } as RoutineItem)));
+      setLoadingRoutines(false);
+      setRoutinesError(null);
+    }, (err) => {
+      setLoadingRoutines(false);
+      try {
+        handleFirestoreError(err, OperationType.GET, routinesPath);
+      } catch (e: any) {
+        setRoutinesError(e.message);
+      }
     });
 
     return () => {
@@ -154,10 +199,10 @@ export default function Dashboard({ profile }: DashboardProps) {
       {/* Header Stat Strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {[
-          { label: 'Efficiency', value: `${performanceStats.efficiency}%`, icon: Zap, color: 'text-cyan-400' },
-          { label: 'Rank', value: `TOP ${performanceStats.rank.toFixed(1)}%`, icon: TrendingUp, color: 'text-fuchsia-400' },
-          { label: 'Velocity', value: `+${(logs.length * 0.4).toFixed(1)}%`, icon: Zap, color: 'text-purple-400' },
-          { label: 'Goals', value: `${goals.length}`, icon: CheckCircle2, color: 'text-white' },
+          { label: 'Efficiency', value: loadingLogs ? '---' : `${performanceStats.efficiency}%`, icon: Zap, color: 'text-cyan-400' },
+          { label: 'Rank', value: loadingGoals || loadingLogs ? '---' : `TOP ${performanceStats.rank.toFixed(1)}%`, icon: TrendingUp, color: 'text-fuchsia-400' },
+          { label: 'Velocity', value: loadingLogs ? '---' : `+${(logs.length * 0.4).toFixed(1)}%`, icon: Zap, color: 'text-purple-400' },
+          { label: 'Goals', value: loadingGoals ? '---' : `${goals.length}`, icon: CheckCircle2, color: 'text-white' },
         ].map((stat, i) => (
           <motion.div 
             key={i}
@@ -168,7 +213,12 @@ export default function Dashboard({ profile }: DashboardProps) {
           >
             <div className="relative z-10 space-y-1">
               <p className="text-[7px] sm:text-[8px] font-bold uppercase tracking-[0.2em] text-white/40 group-hover:text-white/60 transition-colors">{stat.label}</p>
-              <p className={cn("text-2xl sm:text-4xl font-black tracking-tight", stat.color)}>{stat.value}</p>
+              <div className="flex items-center gap-2">
+                <p className={cn("text-2xl sm:text-4xl font-black tracking-tight", stat.color)}>{stat.value}</p>
+                {(i === 0 && loadingLogs) || (i === 1 && (loadingGoals || loadingLogs)) || (i === 2 && loadingLogs) || (i === 3 && loadingGoals) ? (
+                  <Loader2 className="w-3 h-3 animate-spin text-white/20" />
+                ) : null}
+              </div>
             </div>
             <stat.icon className={cn("absolute -bottom-2 -right-2 sm:-bottom-4 sm:-right-4 w-12 h-12 sm:w-20 sm:h-20 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-700 blur-[1px]", stat.color)} />
           </motion.div>
@@ -262,57 +312,77 @@ export default function Dashboard({ profile }: DashboardProps) {
             </div>
 
             {/* Domain Analysis Glass Card */}
-            <div className="glass-card lg:col-span-4 p-8 flex flex-col">
+            <div className="glass-card lg:col-span-4 p-8 flex flex-col min-h-[400px]">
               <div className="space-y-1 mb-8">
                 <p className="text-[8px] font-bold uppercase tracking-[0.4em] text-cyan-400">Section 01</p>
                 <h3 className="text-xl font-bold tracking-tight uppercase">Domain Focus</h3>
               </div>
-              <div className="h-64 flex-grow relative">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={performanceStats.chartData}
-                      innerRadius={65}
-                      outerRadius={90}
-                      paddingAngle={6}
-                      dataKey="value"
-                      stroke="none"
-                    >
-                      {performanceStats.chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      contentStyle={{ 
-                        background: 'rgba(5, 5, 16, 0.95)', 
-                        border: '1px solid rgba(255,255,255,0.1)', 
-                        borderRadius: '16px', 
-                        backdropFilter: 'blur(12px)',
-                        WebkitBackdropFilter: 'blur(12px)',
-                        fontSize: '9px',
-                        textTransform: 'uppercase',
-                        letterSpacing: '1px'
-                      }} 
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <span className="text-4xl font-black tracking-tighter bg-gradient-to-br from-white to-white/50 bg-clip-text text-transparent italic">07</span>
-                  <span className="text-[7px] font-bold uppercase text-white/30 tracking-[0.2em]">Active Nodes</span>
+              
+              {loadingGoals ? (
+                <div className="flex-grow flex flex-col items-center justify-center gap-4">
+                  <Loader2 className="w-8 h-8 animate-spin text-cyan-400/50" />
+                  <p className="text-[8px] font-bold uppercase tracking-widest text-white/20">Syncing Domains...</p>
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3 mt-8 bg-white/5 p-4 rounded-2xl border border-white/5">
-                {CATEGORIES.map(cat => (
-                  <div key={cat.label} className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cat.color }} />
-                    <span className="text-[7px] text-white/50 font-bold uppercase tracking-widest truncate">{cat.label}</span>
+              ) : goalsError ? (
+                <div className="flex-grow flex flex-col items-center justify-center gap-4 text-center">
+                  <AlertCircle className="w-8 h-8 text-fuchsia-400/50" />
+                  <p className="text-[8px] font-bold uppercase tracking-widest text-fuchsia-400/50">Connection Error</p>
+                  <button onClick={() => window.location.reload()} className="flex items-center gap-2 text-[7px] font-bold uppercase tracking-widest text-white/40 hover:text-white transition-colors">
+                    <RefreshCcw className="w-3 h-3" /> Retry Stream
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="h-64 flex-grow relative">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={performanceStats.chartData}
+                          innerRadius={65}
+                          outerRadius={90}
+                          paddingAngle={6}
+                          dataKey="value"
+                          stroke="none"
+                        >
+                          {performanceStats.chartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          contentStyle={{ 
+                            background: 'rgba(5, 5, 16, 0.95)', 
+                            border: '1px solid rgba(255,255,255,0.1)', 
+                            borderRadius: '16px', 
+                            backdropFilter: 'blur(12px)',
+                            WebkitBackdropFilter: 'blur(12px)',
+                            fontSize: '9px',
+                            textTransform: 'uppercase',
+                            letterSpacing: '1px'
+                          }} 
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                      <span className="text-4xl font-black tracking-tighter bg-gradient-to-br from-white to-white/50 bg-clip-text text-transparent italic">
+                        {goals.length < 10 ? `0${goals.length}` : goals.length}
+                      </span>
+                      <span className="text-[7px] font-bold uppercase text-white/30 tracking-[0.2em]">Active Nodes</span>
+                    </div>
                   </div>
-                ))}
-              </div>
+                  <div className="grid grid-cols-2 gap-3 mt-8 bg-white/5 p-4 rounded-2xl border border-white/5">
+                    {CATEGORIES.map(cat => (
+                      <div key={cat.label} className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cat.color }} />
+                        <span className="text-[7px] text-white/50 font-bold uppercase tracking-widest truncate">{cat.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Neural Velocity Glass Card */}
-            <div className="glass-card lg:col-span-8 p-8">
+            <div className="glass-card lg:col-span-8 p-8 min-h-[400px]">
               <div className="flex justify-between items-start mb-8">
                 <div className="space-y-1">
                   <p className="text-[8px] font-bold uppercase tracking-[0.4em] text-fuchsia-400">Section 02</p>
@@ -320,28 +390,41 @@ export default function Dashboard({ profile }: DashboardProps) {
                 </div>
                 <div className="px-4 py-1.5 bg-white/5 rounded-full border border-white/10 text-[8px] font-bold uppercase tracking-[0.2em] text-white/40">Real Time Stream</div>
               </div>
-              <div className="h-72">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={PROGRESS_DATA}>
-                    <defs>
-                      <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.8}/>
-                        <stop offset="100%" stopColor="#22d3ee" stopOpacity={0.1}/>
-                      </linearGradient>
-                    </defs>
-                    <XAxis 
-                      dataKey="day" 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{ fontSize: 8, fill: 'rgba(255,255,255,0.4)', fontWeight: '700', letterSpacing: '2px' }} 
-                      dy={15} 
-                    />
-                    <YAxis hide domain={[0, 110]} />
-                    <Tooltip cursor={{ fill: 'rgba(255,255,255,0.02)' }} contentStyle={{ backgroundColor: 'rgba(5, 5, 16, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', fontSize: '9px' }} />
-                    <Bar dataKey="progress" fill="url(#barGradient)" radius={[8, 8, 8, 8]} barSize={40} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+
+              {loadingLogs ? (
+                <div className="h-72 flex flex-col items-center justify-center gap-4">
+                  <Loader2 className="w-8 h-8 animate-spin text-fuchsia-400/50" />
+                  <p className="text-[8px] font-bold uppercase tracking-widest text-white/20">Calculating Velocity...</p>
+                </div>
+              ) : logsError ? (
+                <div className="h-72 flex flex-col items-center justify-center gap-4 text-center">
+                  <AlertCircle className="w-8 h-8 text-fuchsia-400/50" />
+                  <p className="text-[8px] font-bold uppercase tracking-widest text-fuchsia-400/50">Stream Interrupted</p>
+                </div>
+              ) : (
+                <div className="h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={PROGRESS_DATA}>
+                      <defs>
+                        <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.8}/>
+                          <stop offset="100%" stopColor="#22d3ee" stopOpacity={0.1}/>
+                        </linearGradient>
+                      </defs>
+                      <XAxis 
+                        dataKey="day" 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fontSize: 8, fill: 'rgba(255,255,255,0.4)', fontWeight: '700', letterSpacing: '2px' }} 
+                        dy={15} 
+                      />
+                      <YAxis hide domain={[0, 110]} />
+                      <Tooltip cursor={{ fill: 'rgba(255,255,255,0.02)' }} contentStyle={{ backgroundColor: 'rgba(5, 5, 16, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', fontSize: '9px' }} />
+                      <Bar dataKey="progress" fill="url(#barGradient)" radius={[8, 8, 8, 8]} barSize={40} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </div>
 
             {/* 1% Vision Card */}
@@ -453,58 +536,75 @@ export default function Dashboard({ profile }: DashboardProps) {
                   <h3 className="text-xl font-bold tracking-tight uppercase">Performance History</h3>
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {logs.slice().sort((a,b) => b.date.localeCompare(a.date)).map((log, i) => (
-                  <motion.div 
-                    key={log.date}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    className="glass-card p-6 space-y-4 relative group border-white/5"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-0.5">
-                        <p className="text-[7px] font-bold text-white/30 uppercase tracking-[0.2em]">Log Date</p>
-                        <p className="text-lg font-black italic text-cyan-400 uppercase tracking-tighter leading-none">{log.date}</p>
+
+              {loadingLogs ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="glass-card p-6 h-48 flex flex-col items-center justify-center gap-3 border-white/5 opacity-50">
+                      <Loader2 className="w-5 h-5 animate-spin text-cyan-400/30" />
+                      <p className="text-[7px] font-bold uppercase tracking-widest text-white/20">Decrypting Logs...</p>
+                    </div>
+                  ))}
+                </div>
+              ) : logsError ? (
+                <div className="py-20 text-center glass-card border-white/5 border-dashed">
+                  <AlertCircle className="w-8 h-8 text-fuchsia-400/50 mx-auto mb-4" />
+                  <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-fuchsia-400/50">History Fetch Failure</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {logs.slice().sort((a,b) => b.date.localeCompare(a.date)).map((log, i) => (
+                    <motion.div 
+                      key={log.date}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      className="glass-card p-6 space-y-4 relative group border-white/5"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-0.5">
+                          <p className="text-[7px] font-bold text-white/30 uppercase tracking-[0.2em]">Log Date</p>
+                          <p className="text-lg font-black italic text-cyan-400 uppercase tracking-tighter leading-none">{log.date}</p>
+                        </div>
+                        {log.feedbackRating && (
+                          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/5 rounded-full border border-white/10">
+                            <span className="text-[8px] font-black text-cyan-400">{log.feedbackRating}/5</span>
+                            <Star className="w-2.5 h-2.5 text-cyan-400 fill-cyan-400" />
+                          </div>
+                        )}
                       </div>
-                      {log.feedbackRating && (
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/5 rounded-full border border-white/10">
-                          <span className="text-[8px] font-black text-cyan-400">{log.feedbackRating}/5</span>
-                          <Star className="w-2.5 h-2.5 text-cyan-400 fill-cyan-400" />
+                      
+                      {log.winOfDay && (
+                        <div className="space-y-1.5">
+                          <p className="text-[7px] font-bold text-white/30 uppercase tracking-[0.2em]">Daily Win</p>
+                          <p className="text-[10px] text-fuchsia-400 font-black uppercase italic leading-relaxed line-clamp-2">{log.winOfDay}</p>
                         </div>
                       )}
-                    </div>
-                    
-                    {log.winOfDay && (
-                      <div className="space-y-1.5">
-                        <p className="text-[7px] font-bold text-white/30 uppercase tracking-[0.2em]">Daily Win</p>
-                        <p className="text-[10px] text-fuchsia-400 font-black uppercase italic leading-relaxed line-clamp-2">{log.winOfDay}</p>
-                      </div>
-                    )}
 
-                    {log.aiFeedback && (
-                      <div className="space-y-1.5">
-                        <p className="text-[7px] font-bold text-white/30 uppercase tracking-[0.2em]">AI Advice</p>
-                        <p className="text-[10px] text-white/60 leading-relaxed italic line-clamp-2">"{log.aiFeedback}"</p>
-                      </div>
-                    )}
+                      {log.aiFeedback && (
+                        <div className="space-y-1.5">
+                          <p className="text-[7px] font-bold text-white/30 uppercase tracking-[0.2em]">AI Advice</p>
+                          <p className="text-[10px] text-white/60 leading-relaxed italic line-clamp-2">"{log.aiFeedback}"</p>
+                        </div>
+                      )}
 
-                    <div className="flex gap-4 pt-4 border-t border-white/5">
-                      <div className="flex items-center gap-2">
-                        <Activity className="w-3 h-3 text-fuchsia-400 opacity-60" />
-                        <span className="text-[8px] font-bold text-white/50">{log.sleepHours}H REST</span>
+                      <div className="flex gap-4 pt-4 border-t border-white/5">
+                        <div className="flex items-center gap-2">
+                          <Activity className="w-3 h-3 text-fuchsia-400 opacity-60" />
+                          <span className="text-[8px] font-bold text-white/50">{log.sleepHours}H REST</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Brain className="w-3 h-3 text-purple-400 opacity-60" />
+                          <span className="text-[8px] font-bold text-white/50">{log.meditationMinutes}M SYNC</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Brain className="w-3 h-3 text-purple-400 opacity-60" />
-                        <span className="text-[8px] font-bold text-white/50">{log.meditationMinutes}M SYNC</span>
-                      </div>
+                    </motion.div>
+                  ))}
+                  {logs.length === 0 && (
+                    <div className="lg:col-span-3 py-20 text-center glass-card border-dashed border-white/5 opacity-30">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.4em]">No History Data Available</p>
                     </div>
-                  </motion.div>
-                ))}
-              </div>
-              {logs.length === 0 && (
-                <div className="py-20 text-center glass-card border-dashed border-white/5 opacity-30">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.4em]">No History Data Available</p>
+                  )}
                 </div>
               )}
             </div>
@@ -530,41 +630,54 @@ export default function Dashboard({ profile }: DashboardProps) {
             exit={{ opacity: 0 }}
             className="space-y-12"
           >
-            {CATEGORIES.map(cat => (
-              <div key={cat.label} className="space-y-6">
-                <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
-                  <div className={cn("p-3 rounded-2xl", `text-[${cat.color}] shadow-sm`)} style={{ backgroundColor: `${cat.color}20` }}>
-                    <cat.icon className="w-6 h-6" />
-                  </div>
-                  <h2 className="text-2xl font-bold tracking-tight">{cat.label}</h2>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {goals.filter(g => g.category === cat.label).map(goal => (
-                    <GoalCard key={goal.id} goal={goal} />
-                  ))}
-                  <button 
-                    onClick={async () => {
-                      if (!auth.currentUser) return;
-                      await addDoc(collection(db, 'users', auth.currentUser.uid, 'goals'), {
-                        userId: auth.currentUser.uid,
-                        category: cat.label,
-                        title: 'New Goal',
-                        description: 'What do you want to achieve?',
-                        status: 'in-progress',
-                        progress: 0,
-                        createdAt: new Date().toISOString()
-                      });
-                    }}
-                    className="h-full min-h-[200px] border-2 border-dashed border-gray-100 rounded-[32px] flex flex-col items-center justify-center gap-3 text-gray-300 hover:border-black hover:text-black transition-all group"
-                  >
-                    <div className="p-4 bg-gray-50 rounded-full group-hover:bg-black group-hover:text-white transition-all">
-                      <Plus className="w-8 h-8" />
-                    </div>
-                    <span className="font-bold">Add Domain Objective</span>
-                  </button>
-                </div>
+            {loadingGoals ? (
+              <div className="flex flex-col items-center justify-center py-40 gap-6">
+                <Loader2 className="w-12 h-12 animate-spin text-cyan-400" />
+                <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/20">Accessing Domain Records...</p>
               </div>
-            ))}
+            ) : goalsError ? (
+              <div className="flex flex-col items-center justify-center py-40 gap-6 glass-card border-white/5 mx-auto max-w-lg text-center">
+                <AlertCircle className="w-12 h-12 text-fuchsia-400/50" />
+                <p className="text-xs font-bold uppercase tracking-[0.3em] text-fuchsia-400/50">Domain Sync Failure</p>
+                <button onClick={() => window.location.reload()} className="px-6 py-2 bg-white/5 rounded-full text-[9px] font-bold uppercase tracking-widest hover:bg-white/10 transition-all">Re-Establish Link</button>
+              </div>
+            ) : (
+              CATEGORIES.map(cat => (
+                <div key={cat.label} className="space-y-6">
+                  <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+                    <div className={cn("p-3 rounded-2xl", `text-[${cat.color}] shadow-sm`)} style={{ backgroundColor: `${cat.color}20` }}>
+                      <cat.icon className="w-6 h-6" />
+                    </div>
+                    <h2 className="text-2xl font-bold tracking-tight text-white uppercase italic">{cat.label}</h2>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {goals.filter(g => g.category === cat.label).map(goal => (
+                      <GoalCard key={goal.id} goal={goal} />
+                    ))}
+                    <button 
+                      onClick={async () => {
+                        if (!auth.currentUser) return;
+                        await addDoc(collection(db, 'users', auth.currentUser.uid, 'goals'), {
+                          userId: auth.currentUser.uid,
+                          category: cat.label,
+                          title: 'New Goal',
+                          description: 'What do you want to achieve?',
+                          status: 'in-progress',
+                          progress: 0,
+                          createdAt: new Date().toISOString()
+                        });
+                      }}
+                      className="h-full min-h-[200px] glass-card border-dashed border-white/10 rounded-[32px] flex flex-col items-center justify-center gap-3 text-white/20 hover:border-white/40 hover:text-white transition-all group"
+                    >
+                      <div className="p-4 bg-white/5 rounded-full group-hover:bg-white group-hover:text-zinc-950 transition-all">
+                        <Plus className="w-8 h-8" />
+                      </div>
+                      <span className="font-bold uppercase text-[9px] tracking-widest">Add Domain Objective</span>
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </motion.div>
         )}
 
