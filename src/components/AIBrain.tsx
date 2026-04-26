@@ -81,7 +81,11 @@ export default function AIBrain({ analysis, loading, error, onClose, onSync }: A
           ) : (
             <div className="flex flex-col lg:grid lg:grid-cols-12 gap-8 sm:gap-12">
               <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-                <div className="glass-card p-6 sm:p-10 bg-white/[0.02] border-white/5 space-y-4 sm:space-y-6 flex flex-col justify-between rounded-2xl sm:rounded-[32px]">
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="glass-card p-6 sm:p-10 bg-white/[0.02] border-white/5 space-y-4 sm:space-y-6 flex flex-col justify-between rounded-2xl sm:rounded-[32px]"
+                >
                   <div className="space-y-2">
                     <p className="text-[7px] sm:text-[8px] font-bold uppercase tracking-[0.2em] text-white/40">Efficiency Index</p>
                     <div className="text-5xl sm:text-7xl font-black text-cyan-400 tracking-tighter tabular-nums leading-none">
@@ -89,11 +93,21 @@ export default function AIBrain({ analysis, loading, error, onClose, onSync }: A
                     </div>
                   </div>
                   <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full bg-cyan-400" style={{ width: `${analysis?.efficiencyScore}%` }} />
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${analysis?.efficiencyScore}%` }}
+                      transition={{ duration: 1, ease: "easeOut" }}
+                      className="h-full bg-cyan-400" 
+                    />
                   </div>
-                </div>
+                </motion.div>
 
-                <div className="lg:col-span-2 glass-card p-6 sm:p-10 bg-white/[0.02] border-white/5 space-y-4 sm:space-y-6 rounded-2xl sm:rounded-[32px]">
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="lg:col-span-2 glass-card p-6 sm:p-10 bg-white/[0.02] border-white/5 space-y-4 sm:space-y-6 rounded-2xl sm:rounded-[32px]"
+                >
                   <div className="space-y-1">
                     <p className="text-[7px] sm:text-[8px] font-bold uppercase tracking-[0.2em] text-fuchsia-400">Strategic Review</p>
                     <h4 className="text-lg sm:text-xl font-bold uppercase tracking-tight text-white italic">Performance Reality</h4>
@@ -101,7 +115,7 @@ export default function AIBrain({ analysis, loading, error, onClose, onSync }: A
                   <p className="text-white/60 text-base sm:text-lg font-medium leading-relaxed italic">
                     "{analysis?.progressSummary}"
                   </p>
-                </div>
+                </motion.div>
               </div>
 
               <div className="lg:col-span-7 space-y-6 sm:space-y-8">

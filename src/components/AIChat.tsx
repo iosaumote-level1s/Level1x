@@ -1,11 +1,50 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, memo, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Send, User, Brain, Star, CheckCircle2 } from 'lucide-react';
+import { Send, User, Brain, Star } from 'lucide-react';
 import { db, auth } from '../lib/firebase';
-import { collection, query, onSnapshot, addDoc, orderBy, serverTimestamp, doc, updateDoc, setDoc } from 'firebase/firestore';
+import { collection, query, onSnapshot, addDoc, orderBy, doc, updateDoc, setDoc } from 'firebase/firestore';
 import { conductDailyChat } from '../services/aiService';
 import { ChatMessage, UserProfile } from '../types';
 import { cn } from '../lib/utils';
+
+const MessageItem = memo(({ message, onSaveWin }: { message: ChatMessage; onSaveWin: (text: string) => void }) => {
+  const isUser = message.sender === 'user';
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      className={cn(
+        "flex gap-3 sm:gap-4 max-w-[92%] sm:max-w-[85%]",
+        isUser ? "ml-auto flex-row-reverse" : "mr-auto"
+      )}
+    >
+      <div className={cn(
+        "w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 border",
+        isUser ? "bg-white text-zinc-950 border-white" : "bg-white/5 text-white/40 border-white/10"
+      )}>
+        {isUser ? <User className="w-4 h-4 sm:w-5 sm:h-5" /> : <Brain className="w-4 h-4 sm:w-5 sm:h-5" />}
+      </div>
+      <div className="space-y-2">
+        <div className={cn(
+          "p-4 sm:p-5 rounded-2xl sm:rounded-[24px] text-xs sm:text-sm font-medium leading-relaxed shadow-sm",
+          isUser 
+            ? "bg-white/10 text-white border border-white/20 rounded-tr-none" 
+            : "bg-white text-zinc-950 rounded-tl-none font-semibold"
+        )}>
+          {message.text}
+        </div>
+        {isUser && (
+          <button 
+            onClick={() => onSaveWin(message.text)}
+            className="flex items-center gap-2 px-3 py-1.5 bg-cyan-400 text-zinc-950 rounded-lg text-[8px] sm:text-[9px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-md min-h-[32px]"
+          >
+            <Star className="w-3 h-3 fill-zinc-950" /> Log as Today's Win
+          </button>
+        )}
+      </div>
+    </motion.div>
+  );
+});
 
 export default function AIChat({ profile }: { profile: UserProfile }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -26,27 +65,31 @@ export default function AIChat({ profile }: { profile: UserProfile }) {
   }, []);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo(0, scrollRef.current.scrollHeight);
-  }, [messages]);
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  }, [messages, isTyping]);
 
-  const handleSend = async (e: React.FormEvent) => {
+  const handleSend = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || !auth.currentUser) return;
+    const trimmedInput = input.trim();
+    if (!trimmedInput || !auth.currentUser) return;
 
-    const userMsg = input.trim();
     setInput('');
     
-    // Add user message to Firestore
     await addDoc(collection(db, 'users', auth.currentUser.uid, 'chat'), {
       userId: auth.currentUser.uid,
-      text: userMsg,
+      text: trimmedInput,
       sender: 'user',
       timestamp: new Date().toISOString()
     });
 
     setIsTyping(true);
     try {
-      const aiResponse = await conductDailyChat(messages, userMsg, profile);
+      const aiResponse = await conductDailyChat(messages, trimmedInput, profile);
       await addDoc(collection(db, 'users', auth.currentUser.uid, 'chat'), {
         userId: auth.currentUser.uid,
         text: aiResponse,
@@ -58,16 +101,15 @@ export default function AIChat({ profile }: { profile: UserProfile }) {
     } finally {
       setIsTyping(false);
     }
-  };
+  }, [input, messages, profile]);
 
-  const saveWin = async (winText: string) => {
+  const saveWin = useCallback(async (winText: string) => {
     if (!auth.currentUser) return;
     const today = new Date().toISOString().split('T')[0];
     const logRef = doc(db, 'users', auth.currentUser.uid, 'logs', today);
     try {
       await updateDoc(logRef, { winOfDay: winText });
     } catch {
-      // If doc doesn't exist yet, create basic one
       await setDoc(logRef, {
         userId: auth.currentUser.uid,
         date: today,
@@ -79,7 +121,11 @@ export default function AIChat({ profile }: { profile: UserProfile }) {
         learning: ""
       });
     }
-  };
+  }, []);
+
+  const renderedMessages = useMemo(() => messages.map((m) => (
+    <MessageItem key={m.id} message={m} onSaveWin={saveWin} />
+  )), [messages, saveWin]);
 
   return (
     <div className="max-w-4xl mx-auto h-[calc(100dvh-180px)] sm:h-[700px] flex flex-col glass-card overflow-hidden shadow-2xl relative rounded-none sm:rounded-[40px] mb-20 sm:mb-0">
@@ -108,43 +154,8 @@ export default function AIChat({ profile }: { profile: UserProfile }) {
         ref={scrollRef}
         className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-4 sm:space-y-6 scrollbar-none"
       >
-        <AnimatePresence mode="popLayout">
-          {messages.map((m) => (
-            <motion.div
-              key={m.id}
-              initial={{ opacity: 0, y: 10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              className={cn(
-                "flex gap-3 sm:gap-4 max-w-[92%] sm:max-w-[85%]",
-                m.sender === 'user' ? "ml-auto flex-row-reverse" : "mr-auto"
-              )}
-            >
-              <div className={cn(
-                "w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 border",
-                m.sender === 'user' ? "bg-white text-zinc-950 border-white" : "bg-white/5 text-white/40 border-white/10"
-              )}>
-                {m.sender === 'user' ? <User className="w-4 h-4 sm:w-5 sm:h-5" /> : <Brain className="w-4 h-4 sm:w-5 sm:h-5" />}
-              </div>
-              <div className="space-y-2">
-                <div className={cn(
-                  "p-4 sm:p-5 rounded-2xl sm:rounded-[24px] text-xs sm:text-sm font-medium leading-relaxed shadow-sm",
-                  m.sender === 'user' 
-                    ? "bg-white/10 text-white border border-white/20 rounded-tr-none" 
-                    : "bg-white text-zinc-950 rounded-tl-none font-semibold"
-                )}>
-                  {m.text}
-                </div>
-                {m.sender === 'user' && (
-                  <button 
-                    onClick={() => saveWin(m.text)}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-cyan-400 text-zinc-950 rounded-lg text-[8px] sm:text-[9px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-md min-h-[32px]"
-                  >
-                    <Star className="w-3 h-3 fill-zinc-950" /> Log as Today's Win
-                  </button>
-                )}
-              </div>
-            </motion.div>
-          ))}
+        <AnimatePresence mode="popLayout text-zinc-100">
+          {renderedMessages}
           {isTyping && (
             <motion.div
               initial={{ opacity: 0 }}

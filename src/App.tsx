@@ -1,12 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { auth, db } from './lib/firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { UserProfile } from './types';
-import Dashboard from './components/Dashboard';
-import Questionnaire from './components/Questionnaire';
 import { motion, AnimatePresence } from 'motion/react';
 import { LogIn, LogOut, Loader2, Sparkles, Zap, Shield, Activity, Bell } from 'lucide-react';
+
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const Questionnaire = lazy(() => import('./components/Questionnaire'));
+
+const QUOTES = [
+  "YOUR ONLY LIMIT IS THE ONE YOU SET.",
+  "AMATEURS COMPETE. PROFESSIONALS DOMINATE.",
+  "SUCCESS IS NOT A DESTINATION, IT'S A TRANSFORMATION.",
+  "THE 1% AREN'T BORN. THEY ARE BUILT.",
+  "FOCUS ON THE PROGRESS, NOT THE PAIN.",
+  "DISCIPLINE IS THE BRIDGE BETWEEN GOALS AND ACCOMPLISHMENT."
+];
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -83,21 +93,12 @@ export default function App() {
   };
   const logout = () => auth && signOut(auth);
 
-  const quotes = [
-    "YOUR ONLY LIMIT IS THE ONE YOU SET.",
-    "AMATEURS COMPETE. PROFESSIONALS DOMINATE.",
-    "SUCCESS IS NOT A DESTINATION, IT'S A TRANSFORMATION.",
-    "THE 1% AREN'T BORN. THEY ARE BUILT.",
-    "FOCUS ON THE PROGRESS, NOT THE PAIN.",
-    "DISCIPLINE IS THE BRIDGE BETWEEN GOALS AND ACCOMPLISHMENT."
-  ];
-
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
 
   useEffect(() => {
     if (!user) {
       const interval = setInterval(() => {
-        setCurrentQuoteIndex((prev) => (prev + 1) % quotes.length);
+        setCurrentQuoteIndex((prev) => (prev + 1) % QUOTES.length);
       }, 5000);
       return () => clearInterval(interval);
     }
@@ -153,7 +154,7 @@ export default function App() {
                 >
                   <Bell className="w-3 h-3 sm:w-4 sm:h-4 text-cyan-400 animate-bounce shrink-0" />
                   <p className="text-white font-bold tracking-[0.1em] sm:tracking-[0.2em] uppercase text-[9px] sm:text-xs">
-                    {quotes[currentQuoteIndex]}
+                    {QUOTES[currentQuoteIndex]}
                   </p>
                 </motion.div>
               </AnimatePresence>
@@ -252,13 +253,19 @@ export default function App() {
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-6 sm:py-12 relative z-10 pb-24 sm:pb-12">
-        <AnimatePresence mode="wait">
-          {!profile?.completedAssessment ? (
-            <Questionnaire key="survey" onComplete={() => setProfile(p => p ? {...p, completedAssessment: true} : null)} />
-          ) : (
-            <Dashboard key="dashboard" profile={profile} />
-          )}
-        </AnimatePresence>
+        <Suspense fallback={
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
+          </div>
+        }>
+          <AnimatePresence mode="wait">
+            {!profile?.completedAssessment ? (
+              <Questionnaire key="survey" onComplete={() => setProfile(p => p ? {...p, completedAssessment: true} : null)} />
+            ) : (
+              <Dashboard key="dashboard" profile={profile} />
+            )}
+          </AnimatePresence>
+        </Suspense>
       </main>
 
       <footer className="max-w-7xl mx-auto px-6 sm:px-16 py-12 sm:py-20 flex flex-col sm:flex-row justify-between items-center gap-6 sm:gap-10 border-t border-white/5 opacity-20 relative z-10 mb-20 sm:mb-0">

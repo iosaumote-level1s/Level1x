@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { UserProfile, Goal, DailyLog, GoalCategory, RoutineItem } from '../types';
 import { db, auth } from '../lib/firebase';
-import { collection, query, onSnapshot, doc, setDoc, addDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { collection, query, onSnapshot, addDoc } from 'firebase/firestore';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, CheckCircle2, TrendingUp, DollarSign, Heart, Brain, Book, Users, Zap, LayoutDashboard, Target, Calendar, MessageSquare, Camera, Star, Activity, BarChart3, Sparkles, ChevronRight } from 'lucide-react';
+import { Plus, CheckCircle2, TrendingUp, DollarSign, Heart, Brain, Book, Users, Zap, LayoutDashboard, Target, Calendar, MessageSquare, Activity, BarChart3, Sparkles, ChevronRight } from 'lucide-react';
 import GoalCard from './GoalCard';
 import RoutineList from './RoutineList';
-import FeedbackSystem from './FeedbackSystem';
 import LogForm from './LogForm';
 import AIBrain from './AIBrain';
 import { generateAscensionAnalysis, AscensionAnalysis } from '../services/aiService';
@@ -29,6 +28,24 @@ const CATEGORIES: { label: GoalCategory; icon: any; color: string }[] = [
   { label: 'Network & Relationships', icon: Users, color: '#fb923c' },
   { label: 'Discipline & Habits', icon: Zap, color: '#f472b6' },
 ];
+
+const PROGRESS_DATA = [
+  { day: 'MON', progress: 65 },
+  { day: 'TUE', progress: 80 },
+  { day: 'WED', progress: 45 },
+  { day: 'THU', progress: 90 },
+  { day: 'FRI', progress: 70 },
+  { day: 'SAT', progress: 100 },
+  { day: 'SUN', progress: 85 },
+];
+
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  let greeting = "Good Evening";
+  if (hour < 12) greeting = "Good Morning";
+  else if (hour < 18) greeting = "Good Afternoon";
+  return `Heyy ${greeting}`;
+};
 
 export default function Dashboard({ profile }: DashboardProps) {
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -83,32 +100,20 @@ export default function Dashboard({ profile }: DashboardProps) {
     }
   };
 
-  const calculatedRank = Math.max(1, 100 - (goals.filter(g => g.status === 'completed').length * 5) - (logs.length * 2));
-  const efficiency = Math.min(99.9, (logs.length > 0 ? (logs.filter(l => l.feedbackRating && l.feedbackRating >= 4).length / logs.length) * 100 : 0) + 40).toFixed(1);
+  const performanceStats = useMemo(() => {
+    const calculatedRank = Math.max(1, 100 - (goals.filter(g => g.status === 'completed').length * 5) - (logs.length * 2));
+    const efficiency = Math.min(99.9, (logs.length > 0 ? (logs.filter(l => l.feedbackRating && l.feedbackRating >= 4).length / logs.length) * 100 : 0) + 40).toFixed(1);
+    
+    const chartData = CATEGORIES.map(cat => ({
+      name: cat.label,
+      value: goals.filter(g => g.category === cat.label && g.status === 'completed').length + 1,
+      color: cat.color
+    }));
 
-  const chartData = CATEGORIES.map(cat => ({
-    name: cat.label,
-    value: goals.filter(g => g.category === cat.label && g.status === 'completed').length + 1,
-    color: cat.color
-  }));
+    return { rank: calculatedRank, efficiency, chartData };
+  }, [goals, logs]);
 
-  const progressData = [
-    { day: 'MON', progress: 65 },
-    { day: 'TUE', progress: 80 },
-    { day: 'WED', progress: 45 },
-    { day: 'THU', progress: 90 },
-    { day: 'FRI', progress: 70 },
-    { day: 'SAT', progress: 100 },
-    { day: 'SUN', progress: 85 },
-  ];
-
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    let greeting = "Good Evening";
-    if (hour < 12) greeting = "Good Morning";
-    else if (hour < 18) greeting = "Good Afternoon";
-    return `Heyy ${greeting}`;
-  };
+  const greeting = useMemo(() => getGreeting(), []);
 
   return (
     <div className="space-y-12 sm:space-y-16 pb-32 sm:pb-24 relative">
@@ -122,7 +127,7 @@ export default function Dashboard({ profile }: DashboardProps) {
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
         </p>
         <h2 className="italic leading-[0.9] sm:leading-none">
-          {getGreeting()}, <br className="sm:hidden" /> <span className="text-white/40">great to see you</span>.
+          {greeting}, <br className="sm:hidden" /> <span className="text-white/40">great to see you</span>.
         </h2>
         <p className="text-white/40 font-medium tracking-wide text-xs sm:text-base">
           Ready to dominate the 1% tier today, {profile.displayName}?
@@ -144,8 +149,8 @@ export default function Dashboard({ profile }: DashboardProps) {
       {/* Header Stat Strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {[
-          { label: 'Efficiency', value: `${efficiency}%`, icon: Zap, color: 'text-cyan-400' },
-          { label: 'Rank', value: `TOP ${calculatedRank.toFixed(1)}%`, icon: TrendingUp, color: 'text-fuchsia-400' },
+          { label: 'Efficiency', value: `${performanceStats.efficiency}%`, icon: Zap, color: 'text-cyan-400' },
+          { label: 'Rank', value: `TOP ${performanceStats.rank.toFixed(1)}%`, icon: TrendingUp, color: 'text-fuchsia-400' },
           { label: 'Velocity', value: `+${(logs.length * 0.4).toFixed(1)}%`, icon: Zap, color: 'text-purple-400' },
           { label: 'Goals', value: `${goals.length}`, icon: CheckCircle2, color: 'text-white' },
         ].map((stat, i) => (
@@ -261,14 +266,14 @@ export default function Dashboard({ profile }: DashboardProps) {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={chartData}
+                      data={performanceStats.chartData}
                       innerRadius={65}
                       outerRadius={90}
                       paddingAngle={6}
                       dataKey="value"
                       stroke="none"
                     >
-                      {chartData.map((entry, index) => (
+                      {performanceStats.chartData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
@@ -312,7 +317,7 @@ export default function Dashboard({ profile }: DashboardProps) {
               </div>
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={progressData}>
+                  <BarChart data={PROGRESS_DATA}>
                     <defs>
                       <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.8}/>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { Goal } from '../types';
 import { db, auth } from '../lib/firebase';
 import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
@@ -10,7 +10,7 @@ interface GoalCardProps {
   goal: Goal;
 }
 
-export default function GoalCard({ goal }: GoalCardProps) {
+const GoalCard = memo(({ goal }: GoalCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(goal.title);
   const [desc, setDesc] = useState(goal.description);
@@ -113,4 +113,6 @@ export default function GoalCard({ goal }: GoalCardProps) {
       </div>
     </motion.div>
   );
-}
+});
+
+export default GoalCard;
