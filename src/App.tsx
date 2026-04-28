@@ -43,11 +43,20 @@ export default function App() {
         unsubscribeProfile = onSnapshot(docRef, (docSnap) => {
           if (docSnap.exists()) {
             const data = docSnap.data() as UserProfile;
-            // Only update state if data actually changed significantly or if it's the first load
             setProfile(prev => {
               if (!prev) return data;
-              // Compare simple fields to avoid unnecessary updates/rerenders
-              if (prev.completedAssessment !== data.completedAssessment || prev.displayName !== data.displayName) {
+              
+              const wasCompleted = prev.completedAssessment === true;
+              const isNowCompleted = data.completedAssessment === true;
+              
+              if (wasCompleted && !isNowCompleted) {
+                console.log("Blocking assessment state rollback");
+                return { ...data, completedAssessment: true };
+              }
+              
+              if (prev.completedAssessment !== data.completedAssessment || 
+                  prev.displayName !== data.displayName ||
+                  JSON.stringify(prev.streaks || {}) !== JSON.stringify(data.streaks || {})) {
                 return data;
               }
               return prev;
@@ -59,11 +68,18 @@ export default function App() {
               email: u.email || '',
               completedAssessment: false,
               createdAt: new Date().toISOString(),
-              streaks: {}
+              streaks: { current: 0, best: 0, lastLogin: new Date().toISOString() }
             };
-            setDoc(docRef, newProfile);
+            setDoc(docRef, newProfile).catch(err => {
+              console.error("Profile creation failed:", err);
+              setError("SYSTEM ERROR: UNABLE TO INITIALIZE PROFILE");
+            });
             setProfile(newProfile);
           }
+          setLoading(false);
+        }, (err) => {
+          console.error("Profile snapshot error:", err);
+          setError(`SYNC ERROR: ${err.message.toUpperCase()}`);
           setLoading(false);
         });
       } else {
@@ -122,6 +138,25 @@ export default function App() {
           <Loader2 className="w-12 h-12 animate-spin text-cyan-400" />
           <p className="text-[10px] font-bold uppercase tracking-[0.8em] text-white/20">Loading your profile</p>
         </div>
+      </div>
+    );
+  }
+
+  if (error && !profile && user) {
+    return (
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-zinc-950 gap-8">
+        <div className="space-y-4 text-center">
+          <p className="text-fuchsia-400 font-bold uppercase tracking-[0.4em] text-xs leading-relaxed">
+            {error}
+          </p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="text-white/40 hover:text-white transition-colors uppercase font-bold text-[10px] tracking-widest border border-white/10 px-6 py-2 rounded-full"
+          >
+            Retry Connection
+          </button>
+        </div>
+        <button onClick={logout} className="text-[10px] text-white/20 hover:text-white font-bold uppercase tracking-widest">Sign Out</button>
       </div>
     );
   }
@@ -247,7 +282,7 @@ export default function App() {
               </div>
               <div className="text-right space-y-1 sm:space-y-1">
                 <p className="text-[7px] sm:text-[8px] uppercase tracking-[0.1em] sm:tracking-[0.2em] font-bold text-white/30">Daily Streak</p>
-                <p className="text-sm sm:text-2xl font-black text-fuchsia-400 italic uppercase tracking-tighter">12 DAYS</p>
+                <p className="text-sm sm:text-2xl font-black text-fuchsia-400 italic uppercase tracking-tighter">{profile.streaks?.current || 0} DAYS</p>
               </div>
             </div>
           )}
@@ -279,18 +314,28 @@ export default function App() {
               key="survey"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
+              exit={{ opacity: 0, y: -20, scale: 0.95 }}
+              transition={{ 
+                duration: 0.5,
+                ease: [0.16, 1, 0.3, 1] 
+              }}
+              className="w-full"
             >
-              <Questionnaire onComplete={() => setProfile(prev => prev ? { ...prev, completedAssessment: true } : null)} />
+              <Questionnaire onComplete={() => {
+                setProfile(prev => prev ? { ...prev, completedAssessment: true } : null);
+              }} />
             </motion.div>
           ) : (
             <motion.div
               key="dashboard"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, scale: 0.98, filter: 'blur(10px)' }}
+              animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
               exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
+              transition={{ 
+                duration: 0.6,
+                ease: [0.16, 1, 0.3, 1]
+              }}
+              className="w-full"
             >
               <Dashboard profile={profile} />
             </motion.div>

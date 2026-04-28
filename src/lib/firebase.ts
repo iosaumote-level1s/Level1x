@@ -5,12 +5,64 @@ import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import firebaseConfigJSON from '../../firebase-applet-config.json';
 
 const getFirebaseConfig = () => {
-  const envConfig = process.env.VITE_FIREBASE_CONFIG;
-  if (envConfig) {
-    try {
-      return JSON.parse(envConfig);
-    } catch (e) {
-      console.error("Failed to parse VITE_FIREBASE_CONFIG environment variable", e);
+  // Try import.meta.env first (standard Vite)
+  // We use a safe check for import.meta.env as it might not be available in all envs
+  const metaConfig = (typeof import.meta !== 'undefined' && import.meta.env) 
+    ? import.meta.env.VITE_FIREBASE_CONFIG 
+    : undefined;
+  
+  // Try process.env (injected via vite.config.ts define or polyfilled)
+  const processConfig = (typeof process !== 'undefined' && process.env) 
+    ? process.env.VITE_FIREBASE_CONFIG 
+    : undefined;
+
+  const configStr = metaConfig || processConfig;
+
+  if (configStr) {
+    // If it's already an object (sometimes Vite/infrastructure does this)
+    if (typeof configStr === 'object' && configStr !== null) {
+      return configStr;
+    }
+    
+    if (typeof configStr === 'string') {
+      const trimmed = configStr.trim();
+      
+      // If it's the dreaded "[object Object]" string
+      if (trimmed.startsWith('[object')) {
+        console.warn("VITE_FIREBASE_CONFIG is '[object Object]'. Falling back to local config.");
+        return firebaseConfigJSON;
+      }
+
+      // If it's empty or invalid
+      if (!trimmed || trimmed === 'undefined' || trimmed === 'null') {
+        return firebaseConfigJSON;
+      }
+
+      // If it looks like a JSON object, try parsing it
+      if (trimmed.startsWith('{')) {
+        try {
+          return JSON.parse(trimmed);
+        } catch (e) {
+          console.error("Failed to parse VITE_FIREBASE_CONFIG as JSON string", e);
+        }
+      }
+
+      // Handle potential double stringification
+      try {
+        const firstParse = JSON.parse(configStr);
+        if (typeof firstParse === 'object' && firstParse !== null) {
+          return firstParse;
+        }
+        if (typeof firstParse === 'string' && firstParse.trim().startsWith('{')) {
+          return JSON.parse(firstParse);
+        }
+      } catch (e) {
+        // If it was just a regular string that didn't start with '{', it might not be JSON
+        // We only log if it seems like it should have been.
+        if (trimmed.startsWith('{') || trimmed.startsWith('"')) {
+          console.error("Failed to parse VITE_FIREBASE_CONFIG environment variable", e);
+        }
+      }
     }
   }
   return firebaseConfigJSON;

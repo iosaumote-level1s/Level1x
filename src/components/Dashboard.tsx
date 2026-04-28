@@ -4,7 +4,7 @@ import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { collection, query, onSnapshot, addDoc } from 'firebase/firestore';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, TooltipProps } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, CheckCircle2, TrendingUp, DollarSign, Heart, Brain, Book, Users, Zap, LayoutDashboard, Target, Calendar, MessageSquare, Activity, BarChart3, Sparkles, ChevronRight, Loader2, AlertCircle, RefreshCcw, Star } from 'lucide-react';
+import { Plus, CheckCircle2, TrendingUp, IndianRupee, Heart, Brain, Book, Users, Zap, LayoutDashboard, Target, Calendar, MessageSquare, Activity, BarChart3, Sparkles, ChevronRight, Loader2, AlertCircle, RefreshCcw, Star } from 'lucide-react';
 import GoalCard from './GoalCard';
 import RoutineList from './RoutineList';
 import LogForm from './LogForm';
@@ -21,7 +21,7 @@ interface DashboardProps {
 }
 
 const CATEGORIES: { label: GoalCategory; icon: any; color: string }[] = [
-  { label: 'Money & Wealth', icon: DollarSign, color: '#f0abfc' },
+  { label: 'Money & Wealth', icon: IndianRupee, color: '#f0abfc' },
   { label: 'Fitness & Energy', icon: Heart, color: '#22d3ee' },
   { label: 'Mindset & Focus', icon: Brain, color: '#c084fc' },
   { label: 'Learning & Skills', icon: Book, color: '#818cf8' },
@@ -455,7 +455,9 @@ export default function Dashboard({ profile }: DashboardProps) {
                   </div>
                   <div className="space-y-2 sm:space-y-3">
                     <p className="text-[7px] sm:text-[8px] font-bold text-white/30 uppercase tracking-[0.2em]">Financial Freedom</p>
-                    <p className="text-xl sm:text-2xl font-black text-emerald-400 tracking-tighter italic">${Number(profile.targetIncome || 0).toLocaleString()}/YR</p>
+                    <p className="text-xl sm:text-2xl font-black text-emerald-400 tracking-tighter italic">
+                      ₹{Number((profile.targetIncome || '0').toString().replace(/[^0-9.]/g, '')).toLocaleString()}/YR
+                    </p>
                   </div>
                   <div className="space-y-2 sm:space-y-3">
                     <p className="text-[7px] sm:text-[8px] font-bold text-white/30 uppercase tracking-[0.2em]">Peak Physical Goal</p>

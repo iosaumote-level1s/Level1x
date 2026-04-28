@@ -32,7 +32,7 @@ export const ASSESSMENT_QUESTIONS: Question[] = [
   // LEARNING & SKILLS
   { id: 'q_learn_01', text: 'Hours dedicated to high-income skill acquisition per week?', category: 'Learning & Skills', type: 'number' },
   { id: 'q_learn_08', text: 'How many non-fiction books did you finish in the last 12 months?', category: 'Learning & Skills', type: 'number' },
-  { id: 'q_learn_13', text: 'Do you possess a skill that could realistically earn you $10k/month?', category: 'Learning & Skills', type: 'boolean' },
+  { id: 'q_learn_13', text: 'Do you possess a skill that could realistically earn you ₹8 Lakhs/month?', category: 'Learning & Skills', type: 'boolean' },
   { id: 'q_learn_14', text: 'Do you have an active mentor or belong to a high-level mastermind?', category: 'Learning & Skills', type: 'boolean' },
 
   // NETWORK & RELATIONSHIPS
@@ -48,7 +48,7 @@ export const ASSESSMENT_QUESTIONS: Question[] = [
 
   // FINAL VISION (Critical)
   { id: 'vision3Year', text: 'Describe exactly who you want to become in 3 years. What does your life look like?', category: '1% Vision', type: 'text' },
-  { id: 'targetIncome', text: 'What is your target annual income (in USD) to achieve absolute freedom?', category: '1% Vision', type: 'number' },
+  { id: 'targetIncome', text: 'What is your target annual income (in Rupees) to achieve absolute freedom?', category: '1% Vision', type: 'number' },
   { id: 'dreamCareer', text: 'What is your dream career, business, or contribution to the world?', category: '1% Vision', type: 'text' },
   { id: 'fitnessGoal', text: 'What is your peak physical goal? (e.g., body fat %, specific strength stats)', category: '1% Vision', type: 'text' },
 ];

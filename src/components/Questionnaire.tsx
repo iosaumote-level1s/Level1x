@@ -68,15 +68,17 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
       }
 
       const userRef = doc(db, 'users', auth.currentUser.uid);
-      batch.update(userRef, {
+      batch.set(userRef, {
         completedAssessment: true,
         vision3Year: answers['vision3Year'] || '',
         targetIncome: answers['targetIncome']?.toString() || '0',
         dreamCareer: answers['dreamCareer'] || '',
         fitnessGoal: answers['fitnessGoal'] || ''
-      });
+      }, { merge: true });
 
+      console.log("Committing assessment batch...");
       await batch.commit();
+      console.log("Assessment committed successfully.");
 
       onComplete();
     } catch (err) {

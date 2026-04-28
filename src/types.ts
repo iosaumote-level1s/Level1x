@@ -7,7 +7,11 @@ export interface UserProfile {
   dreamCareer?: string;
   fitnessGoal?: string;
   completedAssessment?: boolean;
-  streaks?: { [key: string]: number };
+  streaks?: {
+    current: number;
+    best: number;
+    lastLogin: string;
+  };
   createdAt: string;
 }
 

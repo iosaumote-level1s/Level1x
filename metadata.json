@@ -1,6 +1,6 @@
 {
-  "name": "LEVEL1X",
-  "description": "level up your life daily",
+  "name": "LEVEL1X | The 1% Ascension",
+  "description": "An elite life-optimization system for radical performance growth and discipline engineering.",
   "requestFramePermissions": ["camera", "microphone"],
-  "majorCapabilities": ["AI Analysis", "Habit Tracking", "Data Visualization"]
+  "majorCapabilities": ["AI Performance Audit", "Visual Habit Engineering", "Deep Neural Tracking"]
 }
