@@ -456,7 +456,20 @@ export default function Dashboard({ profile }: DashboardProps) {
                   <div className="space-y-2 sm:space-y-3">
                     <p className="text-[7px] sm:text-[8px] font-bold text-white/30 uppercase tracking-[0.2em]">Financial Freedom</p>
                     <p className="text-xl sm:text-2xl font-black text-emerald-400 tracking-tighter italic">
-                      ₹{Number((profile.targetIncome || '0').toString().replace(/[^0-9.]/g, '')).toLocaleString()}/YR
+                      ₹{(() => {
+                        const raw = (profile.targetIncome || '0').toString().replace(/[^0-9.]/g, '');
+                        if (raw.length > 15) {
+                          // Shorthand for massive numbers
+                          const len = raw.length;
+                          if (len >= 31) return (Number(raw.slice(0, 3)) / 100).toFixed(2) + ' Nonillion+';
+                          if (len >= 28) return (Number(raw.slice(0, 3)) / 100).toFixed(2) + ' Octillion';
+                          if (len >= 25) return (Number(raw.slice(0, 3)) / 100).toFixed(2) + ' Septillion';
+                          if (len >= 22) return (Number(raw.slice(0, 3)) / 100).toFixed(2) + ' Sextillion';
+                          if (len >= 19) return (Number(raw.slice(0, 3)) / 100).toFixed(2) + ' Quintillion';
+                          if (len >= 16) return (Number(raw.slice(0, 3)) / 100).toFixed(2) + ' Quadrillion';
+                        }
+                        return Number(raw).toLocaleString();
+                      })()}/YR
                     </p>
                   </div>
                   <div className="space-y-2 sm:space-y-3">

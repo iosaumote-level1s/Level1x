@@ -16,6 +16,7 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const currentQuestion = ASSESSMENT_QUESTIONS[step];
   const progress = ((step + 1) / ASSESSMENT_QUESTIONS.length) * 100;
@@ -32,6 +33,7 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
   const handleSubmit = async () => {
     if (!auth.currentUser || isSubmitting) return;
     setIsSubmitting(true);
+    setSubmitError(null);
     try {
       const timestamp = new Date().toISOString();
       const assessmentId = Date.now().toString();
@@ -47,7 +49,16 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
       await setDoc(assessmentRef, assessmentData);
 
       // Generate suggested routine
-      const suggestedItems = await generateRecommendedRoutine(assessmentData);
+      let suggestedItems = [];
+      try {
+        suggestedItems = await generateRecommendedRoutine(assessmentData);
+      } catch (aiErr) {
+        console.error("AI Routine Generation Failed, using defaults:", aiErr);
+        suggestedItems = [
+          { title: 'Morning Deep Work', time: '08:00', trigger: 'Waking up' },
+          { title: 'Physical Training', time: '17:00', trigger: 'End of work' }
+        ];
+      }
       
       const { writeBatch } = await import('firebase/firestore');
       const batch = writeBatch(db);
@@ -71,7 +82,7 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
       batch.set(userRef, {
         completedAssessment: true,
         vision3Year: answers['vision3Year'] || '',
-        targetIncome: answers['targetIncome']?.toString() || '0',
+        targetIncome: (answers['targetIncome'] || '0').toString(),
         dreamCareer: answers['dreamCareer'] || '',
         fitnessGoal: answers['fitnessGoal'] || ''
       }, { merge: true });
@@ -81,8 +92,9 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
       console.log("Assessment committed successfully.");
 
       onComplete();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setSubmitError(err.message || "SYSTEM_SUBMISSION_FAILED");
     } finally {
       setIsSubmitting(false);
     }
@@ -204,15 +216,22 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
                         autoFocus
                         placeholder="0"
                         className="w-full text-5xl sm:text-[8rem] font-black bg-transparent border-b-2 border-white/10 focus:border-cyan-400 outline-none py-4 sm:py-8 text-white tracking-tighter transition-all placeholder:text-white/5 tabular-nums min-h-[64px]"
-                        onChange={(e) => setAnswers({ ...answers, [currentQuestion.id]: Number(e.target.value) })}
+                        onChange={(e) => {
+                          const val = currentQuestion.id === 'targetIncome' ? e.target.value : Number(e.target.value);
+                          setAnswers({ ...answers, [currentQuestion.id]: val });
+                        }}
                         onInput={(e) => {
-                          const target = e.target as HTMLInputElement;
-                          if (target.value.length > 5) target.value = target.value.slice(0, 5);
+                          // Limits removed as requested
                         }}
                         onKeyDown={(e) => e.key === 'Enter' && handleNext()}
                       />
                       <div className="absolute bottom-2 sm:bottom-4 right-0 text-[7px] sm:text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] sm:tracking-[0.5em]">SYSTEM_WAITING...</div>
                     </div>
+                    {submitError && (
+                      <div className="p-4 bg-red-400/10 border border-red-400/20 rounded-xl text-red-400 text-[10px] font-bold uppercase tracking-widest">
+                        CRITICAL_ERROR: {submitError}
+                      </div>
+                    )}
                     <button
                       onClick={handleNext}
                       className="bg-white text-zinc-950 px-8 sm:px-16 py-4 sm:py-6 rounded-xl sm:rounded-[24px] font-bold uppercase text-[9px] sm:text-[10px] tracking-[0.4em] sm:tracking-[0.6em] hover:bg-cyan-400 shadow-xl transition-all flex items-center justify-center gap-4 sm:gap-6 w-full sm:w-fit min-h-[56px]"

@@ -54,9 +54,12 @@ export default function App() {
                 return { ...data, completedAssessment: true };
               }
               
-              if (prev.completedAssessment !== data.completedAssessment || 
-                  prev.displayName !== data.displayName ||
-                  JSON.stringify(prev.streaks || {}) !== JSON.stringify(data.streaks || {})) {
+              const isSignificantUpdate = 
+                prev.completedAssessment !== data.completedAssessment || 
+                prev.displayName !== data.displayName ||
+                JSON.stringify(prev.streaks || {}) !== JSON.stringify(data.streaks || {});
+
+              if (isSignificantUpdate) {
                 return data;
               }
               return prev;
